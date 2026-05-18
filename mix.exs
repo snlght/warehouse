@@ -31,10 +31,10 @@ defmodule EXO.Mixfile do
       {:plug, "~> 1.15.3"},
       {:bandit, "~> 1.0"},
       {:websock_adapter, "~> 0.5"},
-      {:rocksdb, "~> 2.6.2", override: true},
+      {:rocksdb, "~> 2.6.2"},
       # Transitional Erlang-Elixir Tier Stack
       {:form, "~> 11.4.15"},
-      {:bpe, "~> 8.12.3"},
+      {:bpe, "~> 8.12.4"},
       {:nitro, "~> 11.4.16"},
       {:kvs, "~> 10.8.3"},
       {:n2o, "~> 10.12.4"},
