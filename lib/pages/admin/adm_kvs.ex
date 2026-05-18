@@ -6,30 +6,43 @@ defmodule ADM.KVS do
   def parse(_), do: []
 
   def event(:init) do
-      [:user, :writers, :session, :enode]
-      |> Enum.map(fn x ->
-       [ :nitro.clear(x),
-         send(self(), {:direct, x})] end)
+    [:user, :writers, :session, :enode]
+    |> Enum.map(fn x ->
+      [:nitro.clear(x), send(self(), {:direct, x})]
+    end)
   end
 
   def event(:user),
-  do: :nitro.update(:user,
-      NITRO.span(body: parse(:n2o.user())))
+    do:
+      :nitro.update(
+        :user,
+        NITRO.span(body: parse(:n2o.user()))
+      )
 
   def event(:session),
-  do: :nitro.update(:session,
-      NITRO.span(body: :n2o.sid()))
+    do:
+      :nitro.update(
+        :session,
+        NITRO.span(body: :n2o.sid())
+      )
 
   def event(:enode),
-  do: :nitro.update(:enode,
-      NITRO.span(body: :nitro.compact(:erlang.node())))
+    do:
+      :nitro.update(
+        :enode,
+        NITRO.span(body: :nitro.compact(:erlang.node()))
+      )
 
   def event({:link, i}),
-  do: [
+    do: [
       :nitro.clear(:feeds),
-      :kvs.feed(i) |> Enum.map(fn t ->
-        :nitro.insert_bottom(:feeds,
-          NITRO.panel(body: :nitro.compact(t))) end)
+      :kvs.feed(i)
+      |> Enum.map(fn t ->
+        :nitro.insert_bottom(
+          :feeds,
+          NITRO.panel(body: :nitro.compact(t))
+        )
+      end)
     ]
 
   def event(:writers),
@@ -40,9 +53,13 @@ defmodule ADM.KVS do
       |> Enum.map(fn KVS.writer(id: i, count: c) ->
         :nitro.insert_bottom(
           :writers,
-          NITRO.panel(body:
-          [NITRO.link(body: i, postback: {:link, i}),
-           ' (' ++ :nitro.to_list(c) ++ ')']))
+          NITRO.panel(
+            body: [
+              NITRO.link(body: i, postback: {:link, i}),
+              ~c" (" ++ :nitro.to_list(c) ++ ~c")"
+            ]
+          )
+        )
       end)
 
   def event(_), do: []

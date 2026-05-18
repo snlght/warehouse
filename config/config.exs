@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :n2o,
   pickler: :n2o_secret,
@@ -17,18 +17,34 @@ config :kvs,
 
 config :form,
   module: :form_backend,
-  registry: [BPE.Create,BPE.Pass,BPE.Row,BPE.Trace,Client.Row,Client.Form,Program.Form,Program.Row,Account.Form]
+  registry: [
+    BPE.Create,
+    BPE.Pass,
+    BPE.Row,
+    BPE.Trace,
+    Client.Row,
+    Client.Form,
+    Program.Form,
+    Program.Row,
+    Account.Form
+  ]
 
 config :bpe,
   procmodules: [:bpe, :bpe_account],
   logger_level: :info,
-  logger: [{:handler, :synrc, :logger_std_h,
-            %{level: :info,
-              id: :synrc,
-              max_size: 2000,
-              module: :logger_std_h,
-              config: %{type: :file, file: 'exo.log'},
-              formatter: {:logger_formatter,
-                          %{template: [:time,' ',:pid,' ',:module,' ',:msg,'\n'],
-                            single_line: true,}}}}]
-
+  logger: [
+    {:handler, :synrc, :logger_std_h,
+     %{
+       level: :info,
+       id: :synrc,
+       max_size: 2000,
+       module: :logger_std_h,
+       config: %{type: :file, file: ~c"exo.log"},
+       formatter:
+         {:logger_formatter,
+          %{
+            template: [:time, ~c" ", :pid, ~c" ", :module, ~c" ", :msg, ~c"\n"],
+            single_line: true
+          }}
+     }}
+  ]
