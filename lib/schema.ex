@@ -3,6 +3,8 @@ defmodule EXO do
   require FORM
   require Record
 
+  Module.register_attribute(__MODULE__, :exo_fields_accum, accumulate: true)
+
   @schema [ :account, :client, :card, :transaction, :currency, :field, :program, :phone ]
 
   Enum.each(@schema,
@@ -12,21 +14,14 @@ defmodule EXO do
           from_lib: "exosculat/include/" <> :erlang.list_to_binary(:erlang.atom_to_list(t)) <> ".hrl"
         ),
         fn {name, definition} ->
-          prev = :application.get_env(:kernel, :exo_tables, [])
-          prev2 = :application.get_env(:exosculat, :exo_fields, [])
-          case :lists.member(name, prev) do
-            true ->
-              :skip
-
-            false ->
-              Record.defrecord(name, definition)
-              :application.set_env(:kernel, :exo_tables, [name | prev])
-              :application.set_env(:exosculat, :exo_fields, [{name,definition} | prev2])
-          end
+          Record.defrecord(name, definition)
+          Module.put_attribute(__MODULE__, :exo_fields_accum, {name, definition})
         end
       )
     end
   )
+
+  def exo_fields(), do: @exo_fields_accum
 
    def boot() do
       try do
@@ -39,8 +34,7 @@ defmodule EXO do
    def metainfo(), do: KVS.schema( name: :exo, tables: exo())
 
    def table(name) do
-       exo_fields = :application.get_env(:exosculat, :exo_fields, [])
-       {a,b} = :lists.unzip(:proplists.get_value(name, exo_fields, []))
+       {a,b} = :lists.unzip(:proplists.get_value(name, exo_fields(), []))
        KVS.table(name: name, fields: a, instance: b)
    end
 

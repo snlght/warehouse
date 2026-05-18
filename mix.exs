@@ -22,19 +22,21 @@ defmodule EXO.Mixfile do
 
   def application(),
     do: [mod: {EXOSCULAT, []},
-         applications: [:rocksdb,:ranch,:mnesia,:cowboy,:kvs,:syn,:bpe,:nitro,:form,:n2o]]
+         extra_applications: [:rocksdb,:mnesia,:syn,:bpe,:nitro,:form,:n2o]]
 
   def deps() do
     [
       {:ex_doc, "~> 0.29.0", only: :dev},
-      {:cowboy, "~> 2.9.0"},
-      {:rocksdb, "~> 1.6.0"},
-      {:syn, "2.1.0"},
-      {:bpe, "~> 7.11.0"},
-      {:nitro, "~> 7.10.0"},
-      {:form, "~> 7.10.0"},
-      {:kvs, "~> 9.4.8"},
-      {:n2o, "~> 9.11.0"}
+      {:plug, "~> 1.15.3"},
+      {:bandit, "~> 1.0"},
+      {:websock_adapter, "~> 0.5"},
+      {:rocksdb, "~> 2.6.2", override: true},
+      {:form, "~> 11.4.15"},
+      {:bpe, "~> 8.12.3"},
+      {:nitro, "~> 11.4.16"},
+      {:kvs, "~> 10.8.3"},
+      {:n2o, "~> 10.12.4"},
+      {:syn, "2.1.0"}
     ]
   end
 end
