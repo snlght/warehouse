@@ -63,6 +63,7 @@ defmodule Client.Form do
           title: "Тип:",
           type: :select,
           default: :consumer,
+          postback: {:TypeClient, :form.atom([:client, name])},
           options: [
             FORM.opt(name: :consumer, checked: true, title: "Споживач"),
             FORM.opt(name: :admin, title: "Адміністратор")

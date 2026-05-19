@@ -35,6 +35,7 @@ defmodule BPE.Create do
           title: "Тип:",
           tooltips: [],
           default: :bpe_account,
+          postback: {:TypeProcess, :form.atom([:pi, name])},
           options: [
             FORM.opt(
               name: :bpe_account,

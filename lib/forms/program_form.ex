@@ -49,6 +49,7 @@ defmodule Program.Form do
           title: "Тип:",
           type: :select,
           default: :internet,
+          postback: {:TypeProgram, :form.atom([:program, name])},
           options: [
             FORM.opt(name: :internet, checked: true, title: "Інтернет"),
             FORM.opt(name: :oil, title: "Нафта"),

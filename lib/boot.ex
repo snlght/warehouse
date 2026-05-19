@@ -4,7 +4,7 @@ defmodule EXO.Boot do
   def clients() do
     [] = :kvs.all(~c"/exo/clients")
     date = :calendar.now_to_datetime(:erlang.timestamp())
-    ids = :lists.map(fn x-> :timer.sleep(1) ; :kvs.seq([],[]) end, :lists.seq(1,6))
+    ids = :lists.map(fn _ -> :timer.sleep(1) ; :kvs.seq([],[]) end, :lists.seq(1,6))
     sample = [
       EXO.client(
         id: :lists.nth(1,ids),

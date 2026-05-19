@@ -1,6 +1,7 @@
 defmodule ADM.FORM do
   require N2O
   require NITRO
+  require Logger
 
   def event({:client, {:form, mod, col_id}}) do
     :nitro.insert_bottom(
@@ -36,5 +37,5 @@ defmodule ADM.FORM do
     end)
   end
 
-  def event(_), do: :ok
+  def event(x) do Logger.info(inspect(x)) end
 end

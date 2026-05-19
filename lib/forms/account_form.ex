@@ -55,6 +55,7 @@ defmodule Account.Form do
           title: "Тип:",
           type: :select,
           default: :internet,
+          postback: {:TypeAccount, :form.atom([:account, name])},
           options: [
             FORM.opt(name: :internet, checked: true, title: "Інтернет"),
             FORM.opt(name: :oil, title: "Нафта"),
@@ -68,6 +69,7 @@ defmodule Account.Form do
           title: "Тарифна модель:",
           type: :select,
           default: :internet,
+          postback: {:ProgramAccount, :form.atom([:account, name])},
           options: []
         ),
         FORM.field(

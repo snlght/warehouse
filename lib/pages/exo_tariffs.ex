@@ -2,6 +2,7 @@ defmodule EXO.Tariffs do
   require EXO
   require BPE
   require NITRO
+  require Logger
 
   def event(:init) do
     :nitro.clear(:tableHead)
@@ -55,7 +56,7 @@ defmodule EXO.Tariffs do
     :nitro.show(:ctrl)
   end
 
-  def event(_), do: :ok
+  def event(x) do Logger.info(inspect(x)) end
 
   def header() do
     NITRO.panel(
