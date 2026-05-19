@@ -7,6 +7,12 @@ defmodule EXO.Mixfile do
       version: "4.5.6",
       description: "EXO Exosculat Exoskeleton",
       package: package(),
+ overrides: [
+      {:rocksdb,
+       [
+         {:pre_hooks, [{:compile, "patch -N -p1 < ../../../../patches/rocksdb-snappy.patch || true"}]}
+       ]}
+    ],
       deps: deps()
     ]
   end
@@ -31,7 +37,7 @@ defmodule EXO.Mixfile do
       {:plug, "~> 1.15.3"},
       {:bandit, "~> 1.0"},
       {:websock_adapter, "~> 0.5"},
-      {:rocksdb, "~> 2.6.2"},
+      {:rocksdb, github: "emqx/erlang-rocksdb", tag: "1.8.0-emqx-11", override: true},
       # Transitional Erlang-Elixir Tier Stack
       {:form, "~> 11.4.15"},
       {:bpe, "~> 8.12.4"},
