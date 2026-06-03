@@ -3,7 +3,7 @@ defmodule WMS.ServiceOrder.Row do
   require NITRO
 
   def id(), do: EXO.wms_service_order()
-
+  def doc(), do: "Форма реєстрації сервісного замовлення (таблична частина)"
   def new(name, service_order, _) do
     id = EXO.wms_service_order(service_order, :id)
     weapon = EXO.wms_service_order(service_order, :weapon)

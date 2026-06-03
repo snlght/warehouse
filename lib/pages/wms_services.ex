@@ -34,11 +34,10 @@ defmodule EXO.WMS.Services do
     end)
   end
 
-  def event({:CreateSO, form}) do
+  def event({:CreateSO, _form}) do
     id = :kvs.seq([], [])
     weapon = :nitro.to_binary(:nitro.q(:weapon_wms_service_order_none))
     reason = :nitro.to_binary(:nitro.q(:reason_wms_service_order_none))
-    
     order = EXO.wms_service_order(
       id: id,
       weapon: weapon,
@@ -46,14 +45,11 @@ defmodule EXO.WMS.Services do
       service_status: "Init",
       result: ""
     )
-    
     :kvs.put(order)
     :nitro.insert_bottom(:tableRow, WMS.ServiceOrder.Row.new(id, order, []))
-    
     # Init BPE Process
     :bpe.start(WMS.BPE.ServiceOrder.def(), [])
     # Here you'd normally link the BPE process to the document and advance the state.
-    
     :nitro.hide(:frms)
     :nitro.show(:ctrl)
   end
