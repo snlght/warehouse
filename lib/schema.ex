@@ -40,7 +40,7 @@ defmodule EXO do
       Enum.each(
         Record.extract_all(
           from_lib:
-            "exosculat/include/" <> :erlang.list_to_binary(:erlang.atom_to_list(t)) <> ".hrl"
+            "warehouse/include/" <> :erlang.list_to_binary(:erlang.atom_to_list(t)) <> ".hrl"
         ),
         fn {name, definition} ->
           Record.defrecord(name, definition)

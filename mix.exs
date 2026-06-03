@@ -3,7 +3,7 @@ defmodule EXO.Mixfile do
 
   def project() do
     [
-      app: :wms,
+      app: :warehouse,
       version: "4.5.6",
       description: "WMS Warehouse Management System",
       package: package(),
@@ -27,7 +27,7 @@ defmodule EXO.Mixfile do
 
   def application(),
     do: [
-      mod: {EXOSCULAT, []},
+      mod: {WAREHOUSE, []},
       extra_applications: [:rocksdb, :mnesia, :syn, :bpe, :nitro, :form, :n2o]
     ]
 

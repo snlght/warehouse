@@ -1,6 +1,6 @@
 defmodule Sample.Static do
   use Plug.Router
-  @app :application.get_env(:n2o, :app, :exosculat)
+  @app :application.get_env(:n2o, :app, :warehouse)
   @dir :application.get_env(:n2o, :upload, "priv/static")
   plug(Plug.Static, at: "/app", from: {@app, @dir})
   plug(Plug.Static, at: "/", from: {@app, @dir})

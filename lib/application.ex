@@ -1,4 +1,4 @@
-defmodule EXOSCULAT do
+defmodule WAREHOUSE do
   use Application
   use Supervisor
 
