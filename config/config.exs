@@ -29,6 +29,8 @@ config :form,
     Account.Form,
     WMS.Weapon.Form,
     WMS.Weapon.Row,
+    WMS.TransferOrder.Row,
+    WMS.TransferOrder.Form,
     WMS.ServiceOrder.Form,
     WMS.ServiceOrder.Row
   ]

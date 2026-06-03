@@ -160,6 +160,13 @@ defmodule EXO.Boot do
       ]
       :lists.map(fn x -> :kvs.append(x, ~c"/wms/service_orders") end, orders)
       Logger.info("Seeded initial service orders.")
+
+      transfers = [
+        EXO.wms_transfer(id: "TO-101", weapon: "WPN-001", from_storage: "Kyiv", to_storage: "Lviv", transfer_status: "Transit"),
+        EXO.wms_transfer(id: "TO-102", weapon: "WPN-002", from_storage: "Lviv", to_storage: "Kharkiv", transfer_status: "Init")
+      ]
+      :lists.map(fn x -> :kvs.append(x, ~c"/wms/transfers") end, transfers)
+      Logger.info("Seeded initial transfer orders.")
     end
     :ok
   end

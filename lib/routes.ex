@@ -31,7 +31,7 @@ defmodule EXO.Route do
 
   def route(<<"app/wms/operator/weapons", _::binary>>), do: EXO.WMS.Weapons
   def route(<<"app/wms/repair/orders", _::binary>>), do: EXO.WMS.Services
-  def route(<<"app/wms/logistics/transfers", _::binary>>), do: EXO.WMS.Weapons # fallback for now
+  def route(<<"app/wms/logistics/transfers", _::binary>>), do: EXO.WMS.Transfers
   def route(<<"app/wms/operator", _::binary>>), do: EXO.WMS.Operator
   def route(<<"app/wms/repair", _::binary>>), do: EXO.WMS.Repair
   def route(<<"app/wms/logistics", _::binary>>), do: EXO.WMS.Logistics
