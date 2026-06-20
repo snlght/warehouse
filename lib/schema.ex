@@ -38,10 +38,7 @@ defmodule EXO do
     @schema,
     fn t ->
       Enum.each(
-        Record.extract_all(
-          from_lib:
-            "warehouse/include/" <> :erlang.list_to_binary(:erlang.atom_to_list(t)) <> ".hrl"
-        ),
+        Record.extract_all(from: "include/" <> Atom.to_string(t) <> ".hrl"),
         fn {name, definition} ->
           Record.defrecord(name, definition)
           Module.put_attribute(__MODULE__, :exo_fields_accum, {name, definition})

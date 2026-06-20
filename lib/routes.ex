@@ -39,6 +39,7 @@ defmodule EXO.Route do
   def route(<<"app/wms/repair", _::binary>>), do: EXO.WMS.Repair
   def route(<<"app/wms/logistics", _::binary>>), do: EXO.WMS.Logistics
   def route(<<"app/wms/service_events", _::binary>>), do: EXO.WMS.ServiceEvents
+  def route(<<"app/wms/weapon_events", _::binary>>), do: EXO.WMS.WeaponEvents
   # Login
 
   def route(<<"app/login", _::binary>>), do: EXO.Login

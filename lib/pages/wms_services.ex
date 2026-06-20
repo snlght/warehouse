@@ -79,6 +79,11 @@ defmodule EXO.WMS.Services do
     |> String.trim()
   end
 
+def current_time() do
+  DateTime.utc_now()
+  |> DateTime.to_iso8601()
+end
+
   def weapon_exists(weapon_id) do
     wanted_id = normalize_id(weapon_id)
 
@@ -105,6 +110,45 @@ defmodule EXO.WMS.Services do
 
       :kvs.remove(weapon, ~c"/wms/weapons")
       :kvs.append(updated_weapon, ~c"/wms/weapons")
+    end
+  end
+
+  def create_weapon_event_from_service_order(order, new_status) do
+    case new_status do
+      "Repair" ->
+        event =
+          EXO.wms_weapon_event(
+            id: :kvs.seq([], []),
+            weapon: EXO.wms_service_order(order, :weapon),
+            event_type: "REPAIR_STARTED",
+            actor: EXO.wms_service_order(order, :received_by),
+            event_status: "started",
+            from_storage: "",
+            to_storage: "",
+            related_service_order: EXO.wms_service_order(order, :id),
+            related_part: "",
+            created_at: current_time()
+          )
+
+          "Init" ->
+            event = EXO.wms_weapon_event(
+              id: :kvs.seq([], []),
+              weapon: EXO.wms_service_order(order, :weapon),
+              event_type: "SERVICE_ORDER_CREATED",
+              actor: EXO.wms_service_order(order, :received_by),
+              event_status: "created",
+              from_storage: "",
+              to_storage: "",
+              related_service_order: EXO.wms_service_order(order, :id),
+              related_part: "",
+              created_at: current_time()
+            )
+
+
+        :kvs.append(event, ~c"/wms/weapon_events")
+
+      _ ->
+        :ok
     end
   end
 
@@ -160,6 +204,7 @@ defmodule EXO.WMS.Services do
         )
 
       :kvs.append(order, ~c"/wms/service_orders")
+      create_weapon_event_from_service_order(order, "Init")
       :nitro.insert_bottom(:tableRow, WMS.ServiceOrder.Row.new(id, order, []))
 
       :bpe.start(WMS.BPE.ServiceOrder.def(), [])
@@ -195,6 +240,8 @@ defmodule EXO.WMS.Services do
         _ ->
           :ok
       end
+
+      create_weapon_event_from_service_order(order, new_status)
 
       :kvs.remove(order, ~c"/wms/service_orders")
       :kvs.append(updated_order, ~c"/wms/service_orders")

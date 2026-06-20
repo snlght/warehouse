@@ -111,6 +111,25 @@ defmodule EXO.WMS.Transfers do
     end
   end
 
+def create_weapon_event_from_transfer(transfer, new_status) do
+  if new_status == "Delivered" do
+    event =
+      EXO.wms_weapon_event(
+        id: :kvs.seq([], []),
+        weapon: EXO.wms_transfer(transfer, :weapon),
+        event_type: "TRANSFER_COMPLETED",
+        actor: "Logistics",
+        event_status: "completed",
+        from_storage: EXO.wms_transfer(transfer, :from_storage),
+        to_storage: EXO.wms_transfer(transfer, :to_storage),
+        related_service_order: ""
+
+      )
+
+      :kvs.append(event, ~c"/wms/weapon_events")
+  end
+end
+
   def show_error(message) do
     :nitro.clear(:transfer_error)
 
@@ -197,6 +216,7 @@ defmodule EXO.WMS.Transfers do
       case new_status do
         "Delivered" ->
           update_weapon_location(weapon_id, to_storage)
+          create_weapon_event_from_transfer(transfer, new_status)
 
         _ ->
           :ok

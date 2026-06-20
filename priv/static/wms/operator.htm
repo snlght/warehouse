@@ -1,5 +1,22 @@
 <!DOCTYPE html>
 <html>
+
+
+<style>
+    #operator_actions #ctrl {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    #operator_actions .button {
+        min-width: 180px;
+        text-align: center;
+        justify-content: center;
+    }
+</style>
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,12 +25,14 @@
     <link rel="stylesheet" href="../css/forms.css" />
     <link rel="stylesheet" href="../css/admin.css" />
 </head>
+
 <body>
 
     <nav>
         <a href='../wms/operator.htm'>ВЧ (ОПЕРАТОР)</a>
         <a href='../wms/parts.htm'>ДЕТАЛІ</a>
-        <a href='../wms/service_events.htm' >СЕРВІСНІ ПОДІЇ</a>
+        <a href='../wms/service_events.htm'>СЕРВІСНІ ПОДІЇ</a>
+        <a href='../wms/weapon_events.htm'>ІСТОРІЯ ЗБРОЇ</a>
         <a href='../wms/repair.htm'>РВБ (РЕМОНТ)</a>
         <a href='../wms/logistics.htm'>ЛОГІСТИКА</a>
         <a href='../wms/console.htm'>КОНСОЛЬ (МОУ)</a>
@@ -25,7 +44,9 @@
                 <h2 id="pageTitle">ПОРТАЛ ВЧ (НАЯВНА ЗБРОЯ)</h2>
                 <p id="pageDesc">Реєстр зброї та оформлення заявок.</p>
                 <br>
-                <div id="ctrl"> </div>
+                <div id="operator_actions">
+                    <div id="ctrl"> </div>
+                </div>
                 <div id="frms"></div>
                 <br>
             </section><br><br>
@@ -34,8 +55,9 @@
                 <div id="tableHead" class="trGroup"></div>
                 <div id="tableRow" class="trGroup"></div>
             </div>
-            
-            <section style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color); margin-top: 20px;">
+
+            <section
+                style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color); margin-top: 20px;">
                 <small>WMS Рівень 1 <span class="heart">❤</span> N2O/BPE</small>
             </section>
         </article>
@@ -52,4 +74,5 @@
     <script>protos = [$bert]; N2O_start();</script>
 
 </body>
+
 </html>

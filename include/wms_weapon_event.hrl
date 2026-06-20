@@ -13,7 +13,8 @@
     from_storage = <<>>,
     to_storage = <<>>,
     related_service_order = <<>>,
-    related_part = <<>>
+    related_part = <<>>,
+    created_at = <<>>
 }).
 
 -endif.
