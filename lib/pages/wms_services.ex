@@ -79,10 +79,10 @@ defmodule EXO.WMS.Services do
     |> String.trim()
   end
 
-def current_time() do
-  DateTime.utc_now()
-  |> DateTime.to_iso8601()
-end
+  def current_time() do
+    DateTime.utc_now()
+    |> DateTime.to_iso8601()
+  end
 
   def weapon_exists(weapon_id) do
     wanted_id = normalize_id(weapon_id)
@@ -97,6 +97,37 @@ end
       current_id == wanted_id
     end)
   end
+
+def find_weapon(weapon_id) do
+    wanted_id = normalize_id(weapon_id)
+
+    :kvs.all(~c"/wms/weapons")
+    |> Enum.find(fn weapon ->
+      current_id =
+        weapon
+        |> EXO.wms_weapon(:id)
+        |> normalize_id()
+
+      current_id == wanted_id
+    end)
+end
+
+def weapon_available_for_service?(weapon_id) do
+      weapon = find_weapon(weapon_id)
+
+      if weapon != nil do
+        status =
+          weapon
+          |> EXO.wms_weapon(:status)
+          |> :nitro.to_binary()
+          |> String.trim()
+
+        status == "На озброєнні" or status == "active"
+      else
+        false
+      end
+    end
+
 
   def update_weapon_status(weapon_id, new_status) do
     weapon =
@@ -130,20 +161,20 @@ end
             created_at: current_time()
           )
 
-          "Init" ->
-            event = EXO.wms_weapon_event(
-              id: :kvs.seq([], []),
-              weapon: EXO.wms_service_order(order, :weapon),
-              event_type: "SERVICE_ORDER_CREATED",
-              actor: EXO.wms_service_order(order, :received_by),
-              event_status: "created",
-              from_storage: "",
-              to_storage: "",
-              related_service_order: EXO.wms_service_order(order, :id),
-              related_part: "",
-              created_at: current_time()
-            )
-
+      "Init" ->
+        event =
+          EXO.wms_weapon_event(
+            id: :kvs.seq([], []),
+            weapon: EXO.wms_service_order(order, :weapon),
+            event_type: "SERVICE_ORDER_CREATED",
+            actor: EXO.wms_service_order(order, :received_by),
+            event_status: "created",
+            from_storage: "",
+            to_storage: "",
+            related_service_order: EXO.wms_service_order(order, :id),
+            related_part: "",
+            created_at: current_time()
+          )
 
         :kvs.append(event, ~c"/wms/weapon_events")
 
@@ -190,29 +221,36 @@ end
     reason = :nitro.to_binary(:nitro.q(:reason_wms_service_order_none))
     received_by = :nitro.to_binary(:nitro.q(:received_by_wms_service_order_none))
 
-    if weapon != [] and not weapon_exists(weapon) do
-      show_error("Помилка: зброї з таким ID не існує")
-    else
-      order =
-        EXO.wms_service_order(
-          id: id,
-          weapon: weapon,
-          reason: reason,
-          received_by: received_by,
-          service_status: "Init",
-          result: ""
+    cond do
+      weapon != [] and not weapon_exists(weapon) ->
+        show_error("Помилка: зброї з таким ID не існує")
+
+      weapon != [] and not weapon_available_for_service?(weapon) ->
+        show_error(
+          "Помилка: сервісний наряд можна створити тільки для зброї зі статусом 'На озброєнні'"
         )
 
-      :kvs.append(order, ~c"/wms/service_orders")
-      create_weapon_event_from_service_order(order, "Init")
-      :nitro.insert_bottom(:tableRow, WMS.ServiceOrder.Row.new(id, order, []))
+      true ->
+        order =
+          EXO.wms_service_order(
+            id: id,
+            weapon: weapon,
+            reason: reason,
+            received_by: received_by,
+            service_status: "Init",
+            result: ""
+          )
 
-      :bpe.start(WMS.BPE.ServiceOrder.def(), [])
+        :kvs.append(order, ~c"/wms/service_orders")
+        create_weapon_event_from_service_order(order, "Init")
+        :nitro.insert_bottom(:tableRow, WMS.ServiceOrder.Row.new(id, order, []))
 
-      build_form()
+        :bpe.start(WMS.BPE.ServiceOrder.def(), [])
 
-      :nitro.hide(:frms)
-      :nitro.show(:ctrl)
+        build_form()
+
+        :nitro.hide(:frms)
+        :nitro.show(:ctrl)
     end
   end
 
@@ -262,4 +300,5 @@ end
   end
 
   def event(_), do: :ok
+
 end

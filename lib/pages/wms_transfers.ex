@@ -91,6 +91,34 @@ defmodule EXO.WMS.Transfers do
       current_id == wanted_id
     end)
   end
+def find_weapon(weapon_id) do
+    wanted_id = normalize_id(weapon_id)
+
+    :kvs.all(~c"/wms/weapons")
+    |> Enum.find(fn weapon ->
+      current_id =
+        weapon
+        |> EXO.wms_weapon(:id)
+        |> normalize_id()
+
+      current_id == wanted_id
+    end)
+end
+def weapon_available_for_service?(weapon_id) do
+      weapon = find_weapon(weapon_id)
+
+      if weapon != nil do
+        status =
+          weapon
+          |> EXO.wms_weapon(:status)
+          |> :nitro.to_binary()
+          |> String.trim()
+
+        status == "На озброєнні" or status == "active"
+      else
+        false
+      end
+    end
 
   def update_weapon_location(weapon_id, new_location) do
     weapon =
@@ -168,9 +196,16 @@ end
     from_storage = :nitro.to_binary(:nitro.q(:from_storage_wms_transfer_none))
     to_storage = :nitro.to_binary(:nitro.q(:to_storage_wms_transfer_none))
 
-    if weapon != [] and not weapon_exists(weapon) do
-      show_error("Помилка: зброї з таким ID не існує")
-    else
+    cond do
+      weapon != [] and not weapon_exists(weapon) ->
+        show_error("Помилка: зброї з таким ID не існує")
+
+      weapon != [] and not weapon_available_for_service?(weapon) ->
+        show_error(
+          "Помилка: заявку на переміщення можна створити тільки для зброї зі статусом 'На озброєнні'"
+        )
+
+      true ->
       order =
         EXO.wms_transfer(
           id: id,
