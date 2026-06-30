@@ -108,8 +108,7 @@ defmodule EXO.WMS.Services do
     if weapon != nil do
       updated_weapon = EXO.wms_weapon(weapon, status: new_status)
 
-      :kvs.remove(weapon, ~c"/wms/weapons")
-      :kvs.append(updated_weapon, ~c"/wms/weapons")
+      WMS.WeaponRules.update_weapon(updated_weapon)
     end
   end
 

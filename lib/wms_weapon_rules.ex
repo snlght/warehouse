@@ -17,7 +17,7 @@ defmodule WMS.WeaponRules do
         |> EXO.wms_weapon(:id)
         |> normalize_id()
 
-        current_id == wanted_id
+      current_id == wanted_id
     end)
   end
 
@@ -37,40 +37,46 @@ defmodule WMS.WeaponRules do
     end
   end
 
+  def update_weapon(updated_weapon) do
+    old_weapon = find_weapon(EXO.wms_weapon(updated_weapon, :id))
+
+    if old_weapon != nil do
+      :kvs.remove(old_weapon, ~c"/wms/weapons")
+      :kvs.append(updated_weapon, ~c"/wms/weapons")
+    end
+  end
+
   def available_for_service?(weapon_id) do
     status = weapon_status(weapon_id)
     status == "active" or status == "На озброєнні"
   end
 
-
-def clean(value) do
-  value
-  |> :nitro.to_binary()
-  |> String.trim()
-
-end
-
+  def clean(value) do
+    value
+    |> :nitro.to_binary()
+    |> String.trim()
+  end
 
   def available_for_transfer?(weapon_id) do
     status = weapon_status(weapon_id)
     status == "active" or status == "На озброєнні"
   end
 
-def serial_number_exists?(serial_number) do
-  wanted =
-    serial_number
-    |> :nitro.to_binary()
-    |> String.trim()
-
-  :kvs.all(~c"/wms/weapons")
-  |> Enum.any?(fn weapon ->
-    current =
-      weapon
-      |> EXO.wms_weapon(:serial_number)
+  def serial_number_exists?(serial_number) do
+    wanted =
+      serial_number
       |> :nitro.to_binary()
       |> String.trim()
 
-    current == wanted
-  end)
-end
+    :kvs.all(~c"/wms/weapons")
+    |> Enum.any?(fn weapon ->
+      current =
+        weapon
+        |> EXO.wms_weapon(:serial_number)
+        |> :nitro.to_binary()
+        |> String.trim()
+
+      current == wanted
+    end)
+  end
 end

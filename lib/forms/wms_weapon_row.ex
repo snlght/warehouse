@@ -38,7 +38,15 @@ defmodule WMS.Weapon.Row do
         NITRO.panel(class: :column20, body: :nitro.to_binary(owner)),
         NITRO.panel(class: :column10, body: :nitro.to_binary(license)),
         NITRO.panel(class: :column20, body: :nitro.to_binary(storage_location)),
-        NITRO.panel(class: :column20, body: status_title(status_value))
+        NITRO.panel(class: :column20, body: status_title(status_value)),
+        NITRO.panel(class: :column20,
+         body:
+          NITRO.link(
+            body: "Редагувати",
+            postback: {:EditWeapon, id},
+            class: [:button, :sgreen]
+          )
+        )
       ]
     )
   end

@@ -102,8 +102,7 @@ defmodule EXO.WMS.Transfers do
           storage_location: new_location
         )
 
-      :kvs.remove(weapon, ~c"/wms/weapons")
-      :kvs.append(updated_weapon, ~c"/wms/weapons")
+      WMS.WeaponRules.update_weapon(updated_weapon)
     end
   end
 
@@ -117,11 +116,11 @@ defmodule EXO.WMS.Transfers do
           status: new_status
         )
 
-      :kvs.remove(weapon, ~c"/wms/weapons")
-      :kvs.append(updated_weapon, ~c"/wms/weapons")
+      WMS.WeaponRules.update_weapon(updated_weapon)
     end
   end
 
+  @spec current_time() :: binary()
   def current_time() do
     DateTime.utc_now()
     |> DateTime.to_iso8601()

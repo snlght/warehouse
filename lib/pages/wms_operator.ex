@@ -122,6 +122,72 @@ defmodule EXO.WMS.Operator do
     :nitro.show(:frms)
   end
 
+  def event({:EditWeapon, id}) do
+    weapon = WMS.WeaponRules.find_weapon(id)
+
+    if weapon != nil do
+      :nitro.clear(:frms)
+      :nitro.hide(:ctrl)
+
+      :nitro.insert_bottom(
+        :frms,
+        NITRO.panel(id: :operator_error, body: [])
+      )
+
+      mod = WMS.Weapon.EditForm
+      form = mod.new(:none, weapon, [])
+
+      :nitro.insert_bottom(:frms, :form.new(form, weapon, create: true))
+      :nitro.show(:frms)
+    end
+  end
+
+  def event({:UpdateWeapon, id}) do
+    weapon = WMS.WeaponRules.find_weapon(id)
+
+    owner =
+      :owner_wms_weapon_create
+      |> :nitro.q()
+      |> WMS.WeaponRules.clean()
+
+    location =
+      :storage_location_wms_weapon_create
+      |> :nitro.q()
+      |> WMS.WeaponRules.clean()
+
+    license =
+      :license_wms_weapon_create
+      |> :nitro.q()
+      |> WMS.WeaponRules.clean()
+
+    cond do
+      weapon == nil ->
+        WMS.UI.show_error(:operator_error, "Помилка: зброю не знайдено")
+
+      blank?(owner) ->
+        WMS.UI.show_error(:operator_error, "Помилка: власник обов’язковий")
+
+      blank?(location) ->
+        WMS.UI.show_error(:operator_error, "Помилка: локація зберігання обов’язкова")
+
+      blank?(license) ->
+        WMS.UI.show_error(:operator_error, "Помилка: ліцензія/дозвіл обов’язкова")
+
+      true ->
+        updated_weapon =
+          EXO.wms_weapon(
+            weapon,
+            owner: owner,
+            storage_location: location,
+            license: license
+          )
+
+        WMS.WeaponRules.update_weapon(updated_weapon)
+
+        event(:init)
+    end
+  end
+
   def event(:create_service_order) do
     :nitro.redirect("repair.htm")
   end
@@ -143,7 +209,8 @@ defmodule EXO.WMS.Operator do
         NITRO.panel(class: :column20, body: "Власник"),
         NITRO.panel(class: :column10, body: "Ліцензія"),
         NITRO.panel(class: :column20, body: "Локація"),
-        NITRO.panel(class: :column20, body: "Статус")
+        NITRO.panel(class: :column20, body: "Статус"),
+        NITRO.panel(class: :column10, body: "Дія")
       ]
     )
   end
