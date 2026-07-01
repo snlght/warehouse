@@ -7,47 +7,75 @@ defmodule EXO.WMS.Operator do
     :nitro.clear(:tableRow)
     :nitro.clear(:ctrl)
     :nitro.clear(:frms)
-    # :nitro.show(:ctrl)
     :nitro.hide(:frms)
 
     :nitro.insert_top(:tableHead, header())
 
-    :nitro.insert_bottom(
-      :ctrl,
-      NITRO.link(
-        id: :create_service_order,
-        body: "Заявка на ремонт",
-        postback: :create_service_order,
-        class: [:button, :sgreen]
-      )
-    )
-
-    :nitro.insert_bottom(
-      :ctrl,
-      NITRO.link(
-        id: :create_transfer_order,
-        body: "Заявка на переміщення",
-        postback: :create_transfer_order,
-        class: [:button, :sgreen]
-      )
-    )
-
-    :nitro.insert_bottom(
-      :ctrl,
-      NITRO.link(
-        id: :add_weapon,
-        body: "Додати зброю",
-        postback: :add_weapon,
-        class: [:button, :sgreen]
-      )
-    )
+    :nitro.insert_bottom(:ctrl, WMS.Operator.Toolbar.new())
 
     records = :kvs.all(~c"/wms/weapons")
+    render_weapons(records)
+  end
 
-    Enum.each(records, fn weapon ->
-      id = EXO.wms_weapon(weapon, :id)
-      :nitro.insert_bottom(:tableRow, WMS.Weapon.Row.new(id, weapon, []))
-    end)
+  def event(:clear_weapon_search) do
+    records = :kvs.all(~c"/wms/weapons")
+    render_weapons(records)
+  end
+
+  def event(:search_weapon) do
+    query =
+      :weapon_search
+      |> :nitro.q()
+      |> WMS.WeaponRules.clean()
+      |> String.downcase()
+
+    status_filter =
+      :weapon_status_filter
+      |> :nitro.q()
+      |> WMS.WeaponRules.clean()
+
+    records =
+      :kvs.all(~c"/wms/weapons")
+      |> Enum.filter(fn weapon ->
+        fields = [
+          EXO.wms_weapon(weapon, :id),
+          EXO.wms_weapon(weapon, :serial_number),
+          EXO.wms_weapon(weapon, :weapon_model),
+          EXO.wms_weapon(weapon, :owner)
+        ]
+
+        matches_text =
+          query == "" or
+            Enum.any?(fields, fn value ->
+              value
+              |> :nitro.to_binary()
+              |> String.downcase()
+              |> String.contains?(query)
+            end)
+
+        weapon_status =
+          weapon
+          |> EXO.wms_weapon(:status)
+          |> WMS.WeaponRules.clean()
+
+        matches_status =
+          status_filter == "" or
+            status_filter == "all" or
+            weapon_status == status_filter
+
+        matches_text and matches_status
+      end)
+
+    cond do
+      records == [] ->
+        :nitro.clear(:tableRow)
+
+      true ->
+        render_weapons(records)
+
+      true ->
+        render_weapons(records)
+    end
   end
 
   def blank?(value) do
@@ -99,6 +127,15 @@ defmodule EXO.WMS.Operator do
     end
   end
 
+  def render_weapons(records) do
+    :nitro.clear(:tableRow)
+
+    Enum.each(records, fn weapon ->
+      id = EXO.wms_weapon(weapon, :id)
+      :nitro.insert_bottom(:tableRow, WMS.Weapon.Row.new(id, weapon, []))
+    end)
+  end
+
   def event({:Close, _data}) do
     :nitro.clear(:frms)
     :nitro.hide(:frms)
@@ -127,7 +164,6 @@ defmodule EXO.WMS.Operator do
 
     if weapon != nil do
       :nitro.clear(:frms)
-      :nitro.hide(:ctrl)
 
       :nitro.insert_bottom(
         :frms,
@@ -144,6 +180,16 @@ defmodule EXO.WMS.Operator do
 
   def event({:UpdateWeapon, id}) do
     weapon = WMS.WeaponRules.find_weapon(id)
+
+    serial_number =
+      :serial_number_wms_weapon_create
+      |> :nitro.q()
+      |> WMS.WeaponRules.clean()
+
+    weapon_model =
+      :weapon_model_wms_weapon_create
+      |> :nitro.q()
+      |> WMS.WeaponRules.clean()
 
     owner =
       :owner_wms_weapon_create
@@ -164,6 +210,12 @@ defmodule EXO.WMS.Operator do
       weapon == nil ->
         WMS.UI.show_error(:operator_error, "Помилка: зброю не знайдено")
 
+      blank?(serial_number) ->
+        WMS.UI.show_error(:operator_error, "Помилка: серійний номер обов’язковий")
+
+      blank?(weapon_model) ->
+        WMS.UI.show_error(:operator_error, "Помилка: модель зброї обов'язкова")
+
       blank?(owner) ->
         WMS.UI.show_error(:operator_error, "Помилка: власник обов’язковий")
 
@@ -177,6 +229,8 @@ defmodule EXO.WMS.Operator do
         updated_weapon =
           EXO.wms_weapon(
             weapon,
+            serial_number: serial_number,
+            weapon_model: weapon_model,
             owner: owner,
             storage_location: location,
             license: license

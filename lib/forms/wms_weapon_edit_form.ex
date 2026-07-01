@@ -1,6 +1,5 @@
 defmodule WMS.Weapon.EditForm do
   require EXO
-  require NITRO
   require FORM
 
   def id(), do: EXO.wms_weapon()
@@ -25,14 +24,34 @@ defmodule WMS.Weapon.EditForm do
           title: "Зберегти",
           class: [:button, :sgreen],
           sources: [
+            :serial_number_wms_weapon_create,
+            :weapon_model_wms_weapon_create,
             :owner_wms_weapon_create,
             :storage_location_wms_weapon_create,
             :license_wms_weapon_create
+
+
           ],
           postback: {:UpdateWeapon, EXO.wms_weapon(weapon, :id)}
         )
       ],
       fields: [
+        FORM.field(
+          id: :serial_number,
+          name: :serial_number,
+          type: :string,
+          title: "Серійний номер",
+          labelClass: :label,
+          default: EXO.wms_weapon(weapon, :serial_number)
+        ),
+        FORM.field(
+          id: :weapon_model,
+          name: :weapon_model,
+          type: :string,
+          title: "Модель зброї(ID)",
+          labelClass: :label,
+          default: EXO.wms_weapon(weapon, :weapon_model)
+        ),
         FORM.field(
           id: :owner,
           name: :owner,

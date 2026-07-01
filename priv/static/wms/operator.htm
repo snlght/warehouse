@@ -10,25 +10,73 @@
     <link rel="stylesheet" href="../css/admin.css" />
 
     <style>
-        section #ctrl {
-            display: flex !important;
-            flex-direction: row !important;
-            gap: 12px !important;
-            width: 100% !important;
+        .operator_toolbar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
         }
 
-        section #ctrl>a {
-            flex: 1 1 0 !important;
-            display: flex !important;
-            width: auto !important;
-            min-width: 0 !important;
-            max-width: none !important;
-            margin: 0 !important;
-            justify-content: center !important;
-            align-items: center !important;
-            text-align: center !important;
-            min-height: 42px !important;
-            white-space: nowrap !important;
+        .notice {
+            margin: 12px 0;
+            padding: 12px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f9fafb;
+            text-align: center;
+        }
+
+        .toolbar_actions,
+        .toolbar_filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .toolbar_actions>a {
+            flex: 1 1 150px;
+            height: 42px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .toolbar_filters input {
+            flex: 1 1 280px;
+            height: 42px;
+            box-sizing: border-box;
+            padding: 0 12px;
+        }
+
+        .toolbar_filters select {
+            flex: 0 1 220px;
+            height: 42px;
+            box-sizing: border-box;
+            padding: 0 10px;
+        }
+
+        .toolbar_filters>a {
+            flex: 0 0 110px;
+            height: 42px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .notice {
+            margin: 12px 0;
+            padding: 12px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f9fafb;
+            text-align: center;
         }
     </style>
 </head>
@@ -57,7 +105,7 @@
                 <div id="frms"></div>
                 <br>
             </section><br><br>
-
+            
             <div class="table">
                 <div id="tableHead" class="trGroup"></div>
                 <div id="tableRow" class="trGroup"></div>
