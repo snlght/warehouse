@@ -56,9 +56,9 @@ defmodule WMS.WeaponRules do
       serial_number
       |> clean()
 
-      current_id =
-        current_weapon_id
-        |> clean()
+    current_id =
+      current_weapon_id
+      |> clean()
 
     :kvs.all(~c"/wms/weapons")
     |> Enum.any?(fn weapon ->
@@ -67,12 +67,12 @@ defmodule WMS.WeaponRules do
         |> EXO.wms_weapon(:id)
         |> clean()
 
-        weapon_serial =
-          weapon
-          |> EXO.wms_weapon(:serial_number)
-          |> clean()
+      weapon_serial =
+        weapon
+        |> EXO.wms_weapon(:serial_number)
+        |> clean()
 
-        weapon_serial == wanted_serial and weapon_id != current_id
+      weapon_serial == wanted_serial and weapon_id != current_id
     end)
   end
 
@@ -103,5 +103,31 @@ defmodule WMS.WeaponRules do
 
       current == wanted
     end)
+  end
+
+  def blank?(value) do
+    clean(value) == ""
+  end
+
+  def validate_required_weapon_fields(fields) do
+    cond do
+      blank?(fields.serial_number) ->
+        {:error, "Помилка: серійний номер обов’язковий"}
+
+      blank?(fields.weapon_model) ->
+        {:error, "Помилка: модель зброї обов’язкова"}
+
+      blank?(fields.owner) ->
+        {:error, "Помилка: власник обов’язковий"}
+
+      blank?(fields.storage_location) ->
+        {:error, "Помилка: локація зберігання обов’язкова"}
+
+      blank?(fields.license) ->
+        {:error, "Помилка: ліцензія/дозвіл обов’язковий"}
+
+      true ->
+        :ok
+    end
   end
 end

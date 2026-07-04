@@ -1,4 +1,4 @@
-defmodule EXO.WMS.Operator do
+  defmodule EXO.WMS.Operator do
   require EXO
   require NITRO
 
@@ -76,12 +76,12 @@ defmodule EXO.WMS.Operator do
     end
   end
 
-  def blank?(value) do
-    value
-    |> :nitro.to_binary()
-    |> String.trim()
-    |> Kernel.==("")
-  end
+  # def blank?(value) do
+  #   value
+  #   |> :nitro.to_binary()
+  #   |> String.trim()
+  #   |> Kernel.==("")
+  # end
 
   def clean(value) do
     value
@@ -90,38 +90,26 @@ defmodule EXO.WMS.Operator do
   end
 
   def event({:SaveWeapon, data}) do
-    serial_number = :nitro.q(:serial_number_wms_weapon_none) |> clean()
-    weapon_model = :nitro.q(:weapon_model_wms_weapon_none) |> clean()
-    owner = :nitro.q(:owner_wms_weapon_none) |> clean()
-    storage_location = :nitro.q(:storage_location_wms_weapon_none) |> clean()
-    status = :nitro.q(:status_wms_weapon_none) |> clean()
-    license = :nitro.q(:license_wms_weapon_none) |> clean()
+    fields = %{
+      serial_number: :nitro.q(:serial_number_wms_weapon_none) |> clean(),
+      weapon_model: :nitro.q(:weapon_model_wms_weapon_none) |> clean(),
+      owner: :nitro.q(:owner_wms_weapon_none) |> clean(),
+      storage_location: :nitro.q(:storage_location_wms_weapon_none) |> clean(),
+      license: :nitro.q(:license_wms_weapon_none) |> clean()
+    }
 
-    cond do
-      blank?(serial_number) ->
-        WMS.UI.show_error(:operator_error, "Помилка: серійний номер обов’язковий")
+    case WMS.WeaponRules.validate_required_weapon_fields(fields) do
+      {:error, message} ->
+        WMS.UI.show_error(:operatorr_error, message)
 
-      blank?(weapon_model) ->
-        WMS.UI.show_error(:operator_error, "Помилка: модель зброї обов’язкова")
+      :ok ->
+        if WMS.WeaponRules.serial_number_exists?(fields.serial_number) do
+          WMS.UI.show_error(:operator_error, "Помилка: зброя з таким серійним номером вже існує")
+        else
+          EXO.WMS.Weapons.event({:SaveWeapon, data})
 
-      blank?(owner) ->
-        WMS.UI.show_error(:operator_error, "Помилка: власник обов’язковий")
-
-      blank?(storage_location) ->
-        WMS.UI.show_error(:operator_error, "Помилка: локація зберігання обов’язкова")
-
-      blank?(status) ->
-        WMS.UI.show_error(:operator_error, "Помилка: статус обов’язковий")
-
-      blank?(license) ->
-        WMS.UI.show_error(:operator_error, "Помилка: ліцензія/дозвіл обов’язкова")
-
-      WMS.WeaponRules.serial_number_exists?(serial_number) ->
-        WMS.UI.show_error(:operator_error, "Помилка: зброя з таким серійним номером вже існує")
-
-      true ->
-        EXO.WMS.Weapons.event({:SaveWeapon, data})
-        event(:init)
+          event(:init)
+        end
     end
   end
 
@@ -180,70 +168,47 @@ defmodule EXO.WMS.Operator do
     end
   end
 
+
   def event({:UpdateWeapon, id}) do
     weapon = WMS.WeaponRules.find_weapon(id)
 
-    serial_number =
-      :serial_number_wms_weapon_create
-      |> :nitro.q()
-      |> WMS.WeaponRules.clean()
-
-    weapon_model =
-      :weapon_model_wms_weapon_create
-      |> :nitro.q()
-      |> WMS.WeaponRules.clean()
-
-    owner =
-      :owner_wms_weapon_create
-      |> :nitro.q()
-      |> WMS.WeaponRules.clean()
-
-    location =
-      :storage_location_wms_weapon_create
-      |> :nitro.q()
-      |> WMS.WeaponRules.clean()
-
-    license =
-      :license_wms_weapon_create
-      |> :nitro.q()
-      |> WMS.WeaponRules.clean()
+    fields = %{
+      serial_number: :nitro.q(:serial_number_wms_weapon_create) |> clean(),
+      weapon_model: :nitro.q(:weapon_model_wms_weapon_create) |> clean(),
+      owner: :nitro.q(:owner_wms_weapon_create) |> clean(),
+      storage_location: :nitro.q(:storage_location_wms_weapon_create) |> clean(),
+      license: :nitro.q(:license_wms_weapon_create) |> clean()
+    }
 
     cond do
       weapon == nil ->
-        WMS.UI.show_error(:operator_error, "Помилка: зброю не знайдено")
-
-      blank?(serial_number) ->
-        WMS.UI.show_error(:operator_error, "Помилка: серійний номер обов’язковий")
-
-      blank?(weapon_model) ->
-        WMS.UI.show_error(:operator_error, "Помилка: модель зброї обов'язкова")
-
-      blank?(owner) ->
-        WMS.UI.show_error(:operator_error, "Помилка: власник обов’язковий")
-
-      blank?(location) ->
-        WMS.UI.show_error(:operator_error, "Помилка: локація зберігання обов’язкова")
-
-      blank?(license) ->
-        WMS.UI.show_error(:operator_error, "Помилка: ліцензія/дозвіл обов’язкова")
-
-      WMS.WeaponRules.serial_number_used_by_another_weapon?(serial_number, id) ->
-        WMS.UI.show_error(:operator_error, "Помилка: зброя з таким серійним номером вже існує")
+        WMS.UI.show_error(:operator_error, "Помилка: зброя не знайдена")
 
       true ->
-        updated_weapon =
-          EXO.wms_weapon(
-            weapon,
-            serial_number: serial_number,
-            weapon_model: weapon_model,
-            owner: owner,
-            storage_location: location,
-            license: license
-          )
+        case WMS.WeaponRules.validate_required_weapon_fields(fields) do
+          {:error, message} ->
+            WMS.UI.show_error(:operator_error, message)
 
-        WMS.WeaponRules.update_weapon(updated_weapon)
+            :ok ->
+              if WMS.WeaponRules.serial_number_used_by_another_weapon?(fields.serial_number, id) do
+                WMS.UI.show_error(:operator_error, "Помилка: зброя з таким серійним номером вже існує")
 
-        event(:init)
+              else
+                updated_weapon =
+                  EXO.wms_weapon(
+                    weapon,
+                    serial_number: fields.serial_number,
+                    weapon_model: fields.weapon_model,
+                    owner: fields.owner,
+                    storage_location: fields.storage_location,
+                    license: fields.license
+                  )
+
+                  WMS.WeaponRules.update_weapon(updated_weapon)
+
+                event(:init)
+              end
+        end
     end
   end
 
