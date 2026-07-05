@@ -5,43 +5,109 @@ defmodule EXO.WMS.Operator do
   def event(:init) do
     :nitro.clear(:tableHead)
     :nitro.clear(:tableRow)
-    :nitro.clear(:ctrl)
     :nitro.clear(:frms)
+    :nitro.hide(:frms)
 
     :nitro.insert_top(:tableHead, header())
 
-    :nitro.insert_bottom(
-      :ctrl,
-      NITRO.link(
-        id: :create_service_order,
-        body: "Заявка на ремонт",
-        postback: :create_service_order,
-        class: [:button, :sgreen]
-      )
-    )
-
-    :nitro.insert_bottom(
-      :ctrl,
-      NITRO.link(
-        id: :create_transfer_order,
-        body: "Заявка на переміщення",
-        postback: :create_transfer_order,
-        class: [:button, :sgreen]
-      )
-    )
-
-    :nitro.insert_bottom(
-      :ctrl,
-      NITRO.link(
-        id: :add_weapon,
-        body: "Додати зброю",
-        postback: :add_weapon,
-        class: [:button, :sgreen]
-
-      )
-    )
+    render_toolbar(:list)
 
     records = :kvs.all(~c"/wms/weapons")
+    render_weapons(records)
+  end
+
+  def event(:clear_weapon_search) do
+    render_toolbar(:list)
+
+    records = :kvs.all(~c"/wms/weapons")
+    render_weapons(records)
+  end
+
+  def event(:search_weapon) do
+    query =
+      :weapon_search
+      |> :nitro.q()
+      |> WMS.WeaponRules.clean()
+      |> String.downcase()
+
+    status_filter =
+      :weapon_status_filter
+      |> :nitro.q()
+      |> WMS.WeaponRules.clean()
+
+    records =
+      :kvs.all(~c"/wms/weapons")
+      |> Enum.filter(fn weapon ->
+        fields = [
+          EXO.wms_weapon(weapon, :id),
+          EXO.wms_weapon(weapon, :serial_number),
+          EXO.wms_weapon(weapon, :weapon_model),
+          EXO.wms_weapon(weapon, :owner)
+        ]
+
+        matches_text =
+          query == "" or
+            Enum.any?(fields, fn value ->
+              value
+              |> :nitro.to_binary()
+              |> String.downcase()
+              |> String.contains?(query)
+            end)
+
+        weapon_status =
+          weapon
+          |> EXO.wms_weapon(:status)
+          |> WMS.WeaponRules.clean()
+
+        matches_status =
+          status_filter == "" or
+            status_filter == "all" or
+            weapon_status == status_filter
+
+        matches_text and matches_status
+      end)
+
+    cond do
+      records == [] ->
+        :nitro.clear(:tableRow)
+
+      true ->
+        render_weapons(records)
+    end
+  end
+
+  def clean(value) do
+    value
+    |> :nitro.to_binary()
+    |> String.trim()
+  end
+
+  def event({:SaveWeapon, data}) do
+    fields = %{
+      serial_number: :nitro.q(:serial_number_wms_weapon_none) |> clean(),
+      weapon_model: :nitro.q(:weapon_model_wms_weapon_none) |> clean(),
+      owner: :nitro.q(:owner_wms_weapon_none) |> clean(),
+      storage_location: :nitro.q(:storage_location_wms_weapon_none) |> clean(),
+      license: :nitro.q(:license_wms_weapon_none) |> clean()
+    }
+
+    case WMS.WeaponRules.validate_required_weapon_fields(fields) do
+      {:error, message} ->
+        WMS.UI.show_error(:operatorr_error, message)
+
+      :ok ->
+        if WMS.WeaponRules.serial_number_exists?(fields.serial_number) do
+          WMS.UI.show_error(:operator_error, "Помилка: зброя з таким серійним номером вже існує")
+        else
+          EXO.WMS.Weapons.event({:SaveWeapon, data})
+
+          event(:init)
+        end
+    end
+  end
+
+  def render_weapons(records) do
+    :nitro.clear(:tableRow)
 
     Enum.each(records, fn weapon ->
       id = EXO.wms_weapon(weapon, :id)
@@ -49,28 +115,106 @@ defmodule EXO.WMS.Operator do
     end)
   end
 
+  def event({:Close, _data}) do
+    :nitro.clear(:frms)
+    :nitro.hide(:frms)
+    render_toolbar(:list)
+  end
 
-def event({:SaveWeapon, form}) do
-  EXO.WMS.Weapons.event({:SaveWeapon, form})
-  event(:init)
-end
+  def event(:add_weapon) do
+    render_toolbar({:form, "Додавання зброї"})
+    :nitro.clear(:frms)
 
-def event({:Close, data}) do
-  EXO.WMS.Weapons.event({:Close, data})
-  event(:init)
-end
+    :nitro.insert_bottom(
+      :frms,
+      NITRO.panel(
+        id: :operator_error,
+        body: []
+      )
+    )
 
+    mod = WMS.Weapon.Form
+    form = mod.new(:none, mod.id(), [])
 
-def event(:add_weapon) do
-  :nitro.hide(:ctrl)
-  :nitro.clear(:frms)
+    :nitro.insert_bottom(:frms, :form.new(form, mod.id(), []))
+    :nitro.show(:frms)
+  end
 
-  mod = WMS.Weapon.Form
-  form = mod.new(:none, mod.id(), [])
+  def event({:EditWeapon, id}) do
+    weapon = WMS.WeaponRules.find_weapon(id)
 
-  :nitro.insert_bottom(:frms, :form.new(form, mod.id(), []))
-  :nitro.show(:frms)
-end
+    if weapon != nil do
+      :nitro.clear(:frms)
+
+      render_toolbar({:form, "Редагування зброї: #{:nitro.to_binary(id)}"})
+
+      :nitro.insert_bottom(
+        :frms,
+        NITRO.panel(id: :operator_error, body: [])
+      )
+
+      mod = WMS.Weapon.EditForm
+      form = mod.new(:none, weapon, [])
+
+      :nitro.insert_bottom(:frms, :form.new(form, weapon, create: true))
+      :nitro.show(:frms)
+    end
+  end
+
+  def event({:UpdateWeapon, id}) do
+    weapon = WMS.WeaponRules.find_weapon(id)
+
+    fields = %{
+      serial_number: :nitro.q(:serial_number_wms_weapon_create) |> clean(),
+      weapon_model: :nitro.q(:weapon_model_wms_weapon_create) |> clean(),
+      owner: :nitro.q(:owner_wms_weapon_create) |> clean(),
+      storage_location: :nitro.q(:storage_location_wms_weapon_create) |> clean(),
+      license: :nitro.q(:license_wms_weapon_create) |> clean()
+    }
+
+    cond do
+      weapon == nil ->
+        WMS.UI.show_error(:operator_error, "Помилка: зброя не знайдена")
+
+      true ->
+        case WMS.WeaponRules.validate_required_weapon_fields(fields) do
+          {:error, message} ->
+            WMS.UI.show_error(:operator_error, message)
+
+          :ok ->
+            if WMS.WeaponRules.serial_number_used_by_another_weapon?(fields.serial_number, id) do
+              WMS.UI.show_error(
+                :operator_error,
+                "Помилка: зброя з таким серійним номером вже існує"
+              )
+            else
+              updated_weapon =
+                EXO.wms_weapon(
+                  weapon,
+                  serial_number: fields.serial_number,
+                  weapon_model: fields.weapon_model,
+                  owner: fields.owner,
+                  storage_location: fields.storage_location,
+                  license: fields.license
+                )
+
+              WMS.WeaponRules.update_weapon(updated_weapon)
+
+              event(:init)
+            end
+        end
+    end
+  end
+
+  def render_toolbar(:list) do
+    :nitro.clear(:ctrl)
+    :nitro.insert_bottom(:ctrl, WMS.Operator.Toolbar.list_mode())
+  end
+
+  def render_toolbar({:form, title}) do
+    :nitro.clear(:ctrl)
+    :nitro.insert_bottom(:ctrl, WMS.Operator.Toolbar.form_mode(title))
+  end
 
   def event(:create_service_order) do
     :nitro.redirect("repair.htm")
@@ -93,7 +237,8 @@ end
         NITRO.panel(class: :column20, body: "Власник"),
         NITRO.panel(class: :column10, body: "Ліцензія"),
         NITRO.panel(class: :column20, body: "Локація"),
-        NITRO.panel(class: :column20, body: "Статус")
+        NITRO.panel(class: :column20, body: "Статус"),
+        NITRO.panel(class: :column10, body: "Дія")
       ]
     )
   end

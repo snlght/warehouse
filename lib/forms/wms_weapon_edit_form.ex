@@ -1,15 +1,15 @@
-defmodule WMS.Weapon.Form do
+defmodule WMS.Weapon.EditForm do
   require EXO
-  require NITRO
   require FORM
 
-  def doc(), do: "Форма реєстрації зброї"
-  def id, do: EXO.wms_weapon()
+  def id(), do: EXO.wms_weapon()
 
-  def new(name, _weapon, _) do
+  def new(name, weapon, _) do
     FORM.document(
-      name: :form.atom([:wms_weapon, name]),
-      sections: [FORM.sec(name: ["Реєстрація одиниці зброї: "])],
+      name: :form.atom([:wms_weapon_edit, name]),
+      sections: [
+        FORM.sec(name: ["Редагування зброї: ", EXO.wms_weapon(weapon, :id)])
+      ],
       buttons: [
         FORM.but(
           id: :decline,
@@ -24,14 +24,15 @@ defmodule WMS.Weapon.Form do
           title: "Зберегти",
           class: [:button, :sgreen],
           sources: [
-            :serial_number_wms_weapon_none,
-            :weapon_model_wms_weapon_none,
-            :owner_wms_weapon_none,
-            :storage_location_wms_weapon_none,
-            :status_wms_weapon_none,
-            :license_wms_weapon_none
+            :serial_number_wms_weapon_create,
+            :weapon_model_wms_weapon_create,
+            :owner_wms_weapon_create,
+            :storage_location_wms_weapon_create,
+            :license_wms_weapon_create
+
+
           ],
-          postback: {:SaveWeapon, :form.atom([:wms_weapon, name])}
+          postback: {:UpdateWeapon, EXO.wms_weapon(weapon, :id)}
         )
       ],
       fields: [
@@ -40,47 +41,40 @@ defmodule WMS.Weapon.Form do
           name: :serial_number,
           type: :string,
           title: "Серійний номер",
-          labelClass: :label
+          labelClass: :label,
+          default: EXO.wms_weapon(weapon, :serial_number)
         ),
         FORM.field(
           id: :weapon_model,
           name: :weapon_model,
           type: :string,
-          title: "Модель зброї (ID)",
-          labelClass: :label
+          title: "Модель зброї(ID)",
+          labelClass: :label,
+          default: EXO.wms_weapon(weapon, :weapon_model)
         ),
         FORM.field(
           id: :owner,
           name: :owner,
           type: :string,
           title: "Власник",
-          labelClass: :label
+          labelClass: :label,
+          default: EXO.wms_weapon(weapon, :owner)
         ),
         FORM.field(
           id: :storage_location,
           name: :storage_location,
           type: :string,
           title: "Локація зберігання",
-          labelClass: :label
-        ),
-        FORM.field(
-          id: :status,
-          name: :status,
-          title: "Статус:",
-          type: :select,
-          default: :active,
-          options: [
-            FORM.opt(name: :active, checked: true, title: "Активна"),
-            FORM.opt(name: :maintenance, title: "На обслуговуванні"),
-            FORM.opt(name: :decommissioned, title: "Списана")
-          ]
+          labelClass: :label,
+          default: EXO.wms_weapon(weapon, :storage_location)
         ),
         FORM.field(
           id: :license,
           name: :license,
           type: :string,
           title: "Ліцензія/дозвіл",
-          labelClass: :label
+          labelClass: :label,
+          default: EXO.wms_weapon(weapon, :license)
         )
       ]
     )
