@@ -1,7 +1,7 @@
 defmodule EXO.WMS.Parts do
   require EXO
   require NITRO
-  require Logger
+  # require Logger
 
   def event(:init) do
     :nitro.clear(:tableHead)
@@ -12,27 +12,35 @@ defmodule EXO.WMS.Parts do
 
     build_form()
 
-    :nitro.insert_bottom(
-      :ctrl,
-      NITRO.link(
-        id: :creator,
-        body: "Додати деталь",
-        postback: :create,
-        class: [:button, :sgreen]
-      )
-    )
+    render_toolbar(:list)
 
     :nitro.hide(:frms)
 
-    :lists.map(
-      fn x ->
-        :nitro.insert_top(
-          :tableRow,
-          WMS.Part.Row.new(:form.atom([:row, EXO.wms_part(x, :id)]), x, [])
-        )
-      end,
-      :kvs.all(~c"/wms/parts")
-    )
+    records = :kvs.all(~c"/wms/parts")
+    render_parts(records)
+  end
+
+  def render_parts(records) do
+    :nitro.clear(:tableRow)
+
+    Enum.each(records, fn part ->
+      id = EXO.wms_part(part, :id)
+
+      :nitro.insert_bottom(
+        :tableRow,
+        WMS.Part.Row.new(:form.atom([:row, id]), part, [])
+      )
+    end)
+  end
+
+  def render_toolbar(:list) do
+    :nitro.clear(:ctrl)
+    :nitro.insert_bottom(:ctrl, WMS.Part.Toolbar.list_mode())
+  end
+
+  def render_toolbar(:form) do
+    :nitro.clear(:ctrl)
+    :nitro.insert_bottom(:ctrl, WMS.Part.Toolbar.form_mode())
   end
 
   def build_form() do
@@ -49,66 +57,63 @@ defmodule EXO.WMS.Parts do
   end
 
   def event(:create) do
+    render_toolbar(:form)
     build_form()
-    :nitro.hide(:ctrl)
     :nitro.show(:frms)
-  end
-
-  @spec weapon_exists(any()) :: boolean()
-  def weapon_exists(weapon_id) do
-    :kvs.all(~c"/wms/weapons")
-    |> Enum.any?(fn weapon ->
-      :nitro.to_binary(EXO.wms_weapon(weapon, :id)) == :nitro.to_binary(weapon_id)
-    end)
   end
 
   def event({:SavePart, _}) do
     :nitro.clear(:part_error)
 
-    serial_number = :serial_number_wms_part_none |> :nitro.q()
-    part_type = :part_type_wms_part_none |> :nitro.q()
-    part_status = :part_status_wms_part_none |> :nitro.q()
-    installed_in_weapon = :installed_in_weapon_wms_part_none |> :nitro.q()
-    storage_location = :storage_location_wms_part_none |> :nitro.q()
-    manufacturer = :manufacturer_wms_part_none |> :nitro.q()
+    fields = %{
+      serial_number: :serial_number_wms_part_none |> :nitro.q() |> WMS.PartRules.clean(),
+      part_type: :part_type_wms_part_none |> :nitro.q() |> WMS.PartRules.clean(),
+      part_status: :part_status_wms_part_none |> :nitro.q() |> WMS.PartRules.clean(),
+      installed_in_weapon:
+        :installed_in_weapon_wms_part_none |> :nitro.q() |> WMS.PartRules.clean(),
+      storage_location: :storage_location_wms_part_none |> :nitro.q() |> WMS.PartRules.clean(),
+      manufacturer: :manufacturer_wms_part_none |> :nitro.q() |> WMS.PartRules.clean()
+    }
 
-    if installed_in_weapon != [] and not weapon_exists(installed_in_weapon) do
-     WMS.UI.show_error(:part_error, "Помилка: зброї з таким ID не існує")
-    else
-      id = :kvs.seq([], [])
+    case WMS.PartRules.validate_required_part_fields(fields) do
+      {:error, message} ->
+        WMS.UI.show_error(:part_error, message)
 
-      part =
-        EXO.wms_part(
-          id: id,
-          serial_number: serial_number,
-          part_type: part_type,
-          part_status: part_status,
-          installed_in_weapon: installed_in_weapon,
-          storage_location: storage_location,
-          manufacturer: manufacturer
-        )
+      :ok ->
+        cond do
+          fields.installed_in_weapon != "" and
+              not WMS.PartRules.weapon_exists?(fields.installed_in_weapon) ->
+            WMS.UI.show_error(:part_error, "Помилка: зброї з таким ID не існує")
 
-      :kvs.append(part, ~c"/wms/parts")
+          true ->
+            id = :kvs.seq([], [])
 
-      row = WMS.Part.Row.new(:form.atom([:row, id]), part, [])
-      :nitro.insert_top(:tableRow, :form.new(row, part, []))
+            part =
+              EXO.wms_part(
+                id: id,
+                serial_number: fields.serial_number,
+                part_type: fields.part_type,
+                part_status: fields.part_status,
+                installed_in_weapon: fields.installed_in_weapon,
+                storage_location: fields.storage_location,
+                manufacturer: fields.manufacturer
+              )
 
-      build_form()
-
-      :nitro.hide(:frms)
-      :nitro.show(:ctrl)
+            :kvs.append(part, ~c"/wms/parts")
+            event(:init)
+        end
     end
   end
 
   def event({:Close, []}) do
     build_form()
     :nitro.hide(:frms)
-    :nitro.show(:ctrl)
+    render_toolbar(:list)
   end
 
-  def event(x) do
-    Logger.info("Parts event: #{inspect(x)}")
-  end
+  # def event(x) do
+  #   Logger.info("Parts event: #{inspect(x)}")
+  # end
 
   def header() do
     NITRO.panel(

@@ -1,4 +1,4 @@
-  defmodule EXO.WMS.Operator do
+defmodule EXO.WMS.Operator do
   require EXO
   require NITRO
 
@@ -75,13 +75,6 @@
         render_weapons(records)
     end
   end
-
-  # def blank?(value) do
-  #   value
-  #   |> :nitro.to_binary()
-  #   |> String.trim()
-  #   |> Kernel.==("")
-  # end
 
   def clean(value) do
     value
@@ -168,7 +161,6 @@
     end
   end
 
-
   def event({:UpdateWeapon, id}) do
     weapon = WMS.WeaponRules.find_weapon(id)
 
@@ -189,25 +181,27 @@
           {:error, message} ->
             WMS.UI.show_error(:operator_error, message)
 
-            :ok ->
-              if WMS.WeaponRules.serial_number_used_by_another_weapon?(fields.serial_number, id) do
-                WMS.UI.show_error(:operator_error, "Помилка: зброя з таким серійним номером вже існує")
+          :ok ->
+            if WMS.WeaponRules.serial_number_used_by_another_weapon?(fields.serial_number, id) do
+              WMS.UI.show_error(
+                :operator_error,
+                "Помилка: зброя з таким серійним номером вже існує"
+              )
+            else
+              updated_weapon =
+                EXO.wms_weapon(
+                  weapon,
+                  serial_number: fields.serial_number,
+                  weapon_model: fields.weapon_model,
+                  owner: fields.owner,
+                  storage_location: fields.storage_location,
+                  license: fields.license
+                )
 
-              else
-                updated_weapon =
-                  EXO.wms_weapon(
-                    weapon,
-                    serial_number: fields.serial_number,
-                    weapon_model: fields.weapon_model,
-                    owner: fields.owner,
-                    storage_location: fields.storage_location,
-                    license: fields.license
-                  )
+              WMS.WeaponRules.update_weapon(updated_weapon)
 
-                  WMS.WeaponRules.update_weapon(updated_weapon)
-
-                event(:init)
-              end
+              event(:init)
+            end
         end
     end
   end
