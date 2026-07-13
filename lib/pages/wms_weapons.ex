@@ -69,7 +69,7 @@ defmodule EXO.WMS.Weapons do
     model = :weapon_model_wms_weapon_none |> :nitro.q() |> WMS.WeaponRules.clean()
     owner = :owner_wms_weapon_none |> :nitro.q() |> WMS.WeaponRules.clean()
     license = :license_wms_weapon_none |> :nitro.q() |> WMS.WeaponRules.clean()
-    location = :storage_location_wms_weapon_none |> :nitro.q() > WMS.WeaponRules.clean()
+    location = :storage_location_wms_weapon_none |> :nitro.q() |> WMS.WeaponRules.clean()
     status = :status_wms_weapon_none |> :nitro.q() |> WMS.WeaponRules.clean()
 
     id = next_weapon_id()

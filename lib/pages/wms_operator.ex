@@ -146,7 +146,7 @@ defmodule EXO.WMS.Operator do
     if weapon != nil do
       :nitro.clear(:frms)
 
-      render_toolbar({:form, "Редагування зброї: #{:nitro.to_binary(id)}"})
+      render_toolbar(:form)
 
       :nitro.insert_bottom(
         :frms,
@@ -211,10 +211,10 @@ defmodule EXO.WMS.Operator do
     :nitro.insert_bottom(:ctrl, WMS.Operator.Toolbar.list_mode())
   end
 
-  def render_toolbar({:form, title}) do
-    :nitro.clear(:ctrl)
-    :nitro.insert_bottom(:ctrl, WMS.Operator.Toolbar.form_mode(title))
-  end
+  def render_toolbar(:form) do
+  :nitro.clear(:ctrl)
+  :nitro.insert_bottom(:ctrl, WMS.Operator.Toolbar.form_mode())
+end
 
   def event(:create_service_order) do
     :nitro.redirect("repair.htm")

@@ -1,18 +1,10 @@
-defmodule WMS.Weapon.Row do
+  defmodule WMS.Weapon.Row do
   require EXO
   require NITRO
   require FORM
 
   def id(), do: EXO.wms_weapon()
   def doc(), do: "Форма реєстрації зброї (таблична частина)"
-
-  def status_title("active"), do: "На озброєнні"
-  def status_title("repair"), do: "На ремонті"
-  def status_title("maintenance"), do: "На обслуговуванні"
-  def status_title("destroyed"), do: "Знищено"
-  def status_title("decommissioned"), do: "Списана"
-  def status_title("transfer"), do: "У дорозі"
-  def status_title(value), do: value
 
   def new(name, weapon, _) do
     id = EXO.wms_weapon(weapon, :id)
@@ -21,12 +13,12 @@ defmodule WMS.Weapon.Row do
     owner = EXO.wms_weapon(weapon, :owner)
     license = EXO.wms_weapon(weapon, :license)
     storage_location = EXO.wms_weapon(weapon, :storage_location)
-    status = EXO.wms_weapon(weapon, :status)
 
-    status_value =
-      status
-      |> :nitro.to_binary()
-      |> String.trim()
+    status =
+      weapon
+      |> EXO.wms_weapon(:status)
+      |> WMS.WeaponRules.clean()
+      |> WMS.WeaponRules.status_title()
 
     NITRO.panel(
       id: :form.atom([:tr, name]),
@@ -38,14 +30,15 @@ defmodule WMS.Weapon.Row do
         NITRO.panel(class: :column20, body: :nitro.to_binary(owner)),
         NITRO.panel(class: :column10, body: :nitro.to_binary(license)),
         NITRO.panel(class: :column20, body: :nitro.to_binary(storage_location)),
-        NITRO.panel(class: :column20, body: status_title(status_value)),
-        NITRO.panel(class: :column20,
-         body:
-          NITRO.link(
-            body: "Редагувати",
-            postback: {:EditWeapon, id},
-            class: [:button, :sgreen]
-          )
+        NITRO.panel(class: :column20, body: :nitro.to_binary(status)),
+        NITRO.panel(
+          class: :column20,
+          body:
+            NITRO.link(
+              body: "Редагувати",
+              postback: {:EditWeapon, id},
+              class: [:button, :sgreen]
+            )
         )
       ]
     )

@@ -3,7 +3,7 @@ defmodule WMS.Operator.Toolbar do
 
   def list_mode() do
     NITRO.panel(
-      class: :operator_toolbar,
+      class: :wms_toolbar,
       body: [
         NITRO.panel(
           class: :toolbar_actions,
@@ -64,20 +64,10 @@ defmodule WMS.Operator.Toolbar do
     )
   end
 
-  def form_mode(title) do
-    NITRO.panel(
-      class: :operator_toolbar,
-      body: [
-        NITRO.panel(
-          class: :toolbar_actions,
-          body: [
-            NITRO.panel(
-              class: :button,
-              body: title
-            )
-          ]
-        )
-      ]
-    )
+  def form_mode() do
+  NITRO.panel(
+    class: :wms_toolbar,
+    body: []
+  )
   end
 end

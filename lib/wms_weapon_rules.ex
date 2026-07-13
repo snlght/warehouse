@@ -7,6 +7,14 @@ defmodule WMS.WeaponRules do
     |> String.trim()
   end
 
+  def status_title("active"), do: "На озброєнні"
+  def status_title("repair"), do: "На ремонті"
+  def status_title("maintenance"), do: "На обслуговуванні"
+  def status_title("destroyed"), do: "Знищено"
+  def status_title("decommissioned"), do: "Списана"
+  def status_title("transfer"), do: "У дорозі"
+  def status_title(value), do: value
+
   def find_weapon(weapon_id) do
     wanted_id = normalize_id(weapon_id)
 

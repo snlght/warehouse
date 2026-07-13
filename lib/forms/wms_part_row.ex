@@ -12,7 +12,13 @@ defmodule WMS.Part.Row do
     id = EXO.wms_part(part, :id)
     serial_number = EXO.wms_part(part, :serial_number)
     part_type = EXO.wms_part(part, :part_type)
-    part_status = EXO.wms_part(part, :part_status)
+
+    part_status =
+      part
+      |> EXO.wms_part(:part_status)
+      |> WMS.PartRules.clean()
+      |> WMS.PartRules.status_title()
+
     installed_in_weapon = EXO.wms_part(part, :installed_in_weapon)
     storage_location = EXO.wms_part(part, :storage_location)
     manufacturer = EXO.wms_part(part, :manufacturer)
@@ -27,8 +33,16 @@ defmodule WMS.Part.Row do
         NITRO.panel(class: :column20, body: :nitro.to_binary(part_status)),
         NITRO.panel(class: :column20, body: :nitro.to_binary(installed_in_weapon)),
         NITRO.panel(class: :column20, body: :nitro.to_binary(storage_location)),
-        NITRO.panel(class: :column20, body: :nitro.to_binary(manufacturer))
-
+        NITRO.panel(class: :column20, body: :nitro.to_binary(manufacturer)),
+        NITRO.panel(
+          class: :column20,
+          body:
+            NITRO.link(
+              body: "Редагувати",
+              postback: {:EditPart, id},
+              class: [:button, :sgreen]
+            )
+        )
       ]
     )
   end
