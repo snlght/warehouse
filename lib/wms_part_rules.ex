@@ -84,6 +84,7 @@ defmodule WMS.PartRules do
     end
   end
 
+  @spec update_part(any(), any(), any()) :: {:error, <<_::64, _::_*8>>} | {:ok, tuple()}
   def update_part(nil, _fields, _current_part_id) do
     {:error, "Помилка: деталь не знайдена"}
   end
