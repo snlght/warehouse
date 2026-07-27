@@ -1,7 +1,6 @@
 defmodule EXO.WMS.ServiceEvents do
   require EXO
   require NITRO
-  require Logger
 
   def event(:init) do
     :nitro.clear(:tableHead)

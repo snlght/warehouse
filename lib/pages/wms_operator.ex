@@ -122,7 +122,7 @@ defmodule EXO.WMS.Operator do
   end
 
   def event(:add_weapon) do
-    render_toolbar({:form, "Додавання зброї"})
+    render_toolbar(:form)
     :nitro.clear(:frms)
 
     :nitro.insert_bottom(
