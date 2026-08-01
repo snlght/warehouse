@@ -1,6 +1,14 @@
 defmodule WMS.PartRules do
   require EXO
 
+  @allowed_statuses [
+    "installed",
+    "spare",
+    "removed",
+    "broken",
+    "decommissioned"
+  ]
+
   def clean(value) do
     value
     |> :nitro.to_binary()
@@ -114,6 +122,7 @@ defmodule WMS.PartRules do
 
   def validate_create(fields) do
     with :ok <- validate_required_part_fields(fields),
+         :ok <- validate_part_state(fields),
          :ok <- validate_installed_in_weapon(fields.installed_in_weapon),
          :ok <- validate_unique_serial_number(fields.serial_number) do
       :ok
@@ -122,6 +131,7 @@ defmodule WMS.PartRules do
 
   def validate_update(fields, current_part_id) do
     with :ok <- validate_required_part_fields(fields),
+         :ok <- validate_part_state(fields),
          :ok <- validate_installed_in_weapon(fields.installed_in_weapon),
          :ok <- validate_unique_serial_number_for_update(fields.serial_number, current_part_id) do
       :ok
@@ -140,6 +150,7 @@ defmodule WMS.PartRules do
   end
 
   def validate_installed_in_weapon(""), do: :ok
+
   def validate_installed_in_weapon(weapon_id) do
     if weapon_exists?(weapon_id) do
       :ok
@@ -153,6 +164,25 @@ defmodule WMS.PartRules do
       {:error, "Помилка: деталь з таким серійним номером вже існує"}
     else
       :ok
+    end
+  end
+
+  defp validate_part_state(fields) do
+    status = normalize(fields.part_status)
+    weapon_id = clean(fields.installed_in_weapon)
+
+    cond do
+      status not in @allowed_statuses ->
+        {:error, "Помилка: некоректний статус деталі"}
+
+      status == "installed" and weapon_id == "" ->
+        {:error, "Помилка: деталь не може бути встановлена без ID зброї"}
+
+      status != "installed" and weapon_id != "" ->
+        {:error, "Помилка: тільки встановлена деталь може бути прив’язана до зброї"}
+
+      true ->
+        :ok
     end
   end
 

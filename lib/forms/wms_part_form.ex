@@ -67,7 +67,7 @@ defmodule WMS.Part.Form do
           id: :installed_in_weapon,
           name: :installed_in_weapon,
           type: :string,
-          title: "ID зброї",
+          title: "ID зброї - лише для встановленої деталі",
           labelClass: :label
         ),
         FORM.field(
