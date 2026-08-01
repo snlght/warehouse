@@ -6,7 +6,7 @@ defmodule WMS.ServiceEvent.Form do
   def doc(), do: "Форма реєстрації сервісної події"
   def id, do: EXO.wms_service_event()
 
-  def new(name, _event, _) do
+  def new(name, _event, selected_order_id) do
     FORM.document(
       name: :form.atom([:wms_service_event, name]),
       sections: [FORM.sec(name: ["Реєстрація сервісної події:"])],
@@ -24,8 +24,6 @@ defmodule WMS.ServiceEvent.Form do
           title: "Зберегти",
           class: [:button, :sgreen],
           sources: [
-            :service_order_wms_service_event_none,
-            :weapon_wms_service_event_none,
             :event_type_wms_service_event_none,
             :actor_wms_service_event_none,
             :event_status_wms_service_event_none,
@@ -35,24 +33,10 @@ defmodule WMS.ServiceEvent.Form do
             :old_part_wms_service_event_none,
             :new_part_wms_service_event_none
           ],
-          postback: {:SaveServiceEvent, :form.atom([:wms_service_event, name])}
+          postback: {:SaveServiceEvent, selected_order_id}
         )
       ],
       fields: [
-        FORM.field(
-          id: :service_order,
-          name: :service_order,
-          type: :string,
-          title: "Сервісний наряд",
-          labelClass: :label
-        ),
-        FORM.field(
-          id: :weapon,
-          name: :weapon,
-          type: :string,
-          title: "ID зброї",
-          labelClass: :label
-        ),
         FORM.field(
           id: :event_type,
           name: :event_type,

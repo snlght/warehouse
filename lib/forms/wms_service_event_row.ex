@@ -2,8 +2,6 @@ defmodule WMS.ServiceEvent.Row do
   require EXO
   require NITRO
   require FORM
-
-require EXO
   def id(), do: EXO.wms_service_event()
 
   def doc(), do: "Форма сервісної події (таблична частина)"
@@ -30,10 +28,13 @@ require EXO
         NITRO.panel(class: :column20, body: :nitro.to_binary(weapon)),
         NITRO.panel(class: :column20, body: :nitro.to_binary(event_type)),
         NITRO.panel(class: :column20, body: :nitro.to_binary(actor)),
-        NITRO.panel(class: :column20, body: :nitro.to_binary(event_status)),
-        NITRO.panel(class: :column20, body: :nitro.to_binary(result)),
+        NITRO.panel(
+          class: :column20,
+          body: WMS.ServiceEventRules.status_title(event_status)
+        ),
         NITRO.panel(class: :column20, body: :nitro.to_binary(condition)),
         NITRO.panel(class: :column20, body: :nitro.to_binary(required_action)),
+        NITRO.panel(class: :column20, body: :nitro.to_binary(result)),
         NITRO.panel(class: :column20, body: :nitro.to_binary(old_part)),
         NITRO.panel(class: :column20, body: :nitro.to_binary(new_part))
       ]

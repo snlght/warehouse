@@ -1,0 +1,54 @@
+.service_order_lookup {
+    margin-bottom: 20px;
+}
+
+.service_order_lookup_title {
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.service_order_lookup .toolbar_filters {
+    justify-content: flex-start;
+}
+
+#service_order_search {
+    flex: 0 0 320px !important;
+    width: 320px !important;
+    min-width: 320px !important;
+    max-width: 320px !important;
+}
+
+#service_order_info {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 14px;
+}
+
+.service_order_card {
+    width: 100%;
+    min-width: 360px;
+    max-width: 500px;
+    padding: 14px 16px;
+    border: 1px solid #dfe3eb;
+    border-radius: 8px;
+    background: #f7f9fc;
+    box-sizing: border-box;
+}
+
+.service_order_card_title {
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.service_order_card_row {
+    margin-top: 3px;
+}
+
+#service_event_form_container {
+    margin-top: 18px;
+}
+
+#service_event_error {
+    margin-bottom: 14px;
+    text-align: left;
+}

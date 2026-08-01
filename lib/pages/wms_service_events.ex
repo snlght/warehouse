@@ -6,6 +6,7 @@ defmodule EXO.WMS.ServiceEvents do
     :nitro.clear(:tableHead)
     :nitro.clear(:tableRow)
     :nitro.insert_top(:tableHead, header())
+
     :nitro.clear(:ctrl)
 
     build_form()
@@ -41,9 +42,55 @@ defmodule EXO.WMS.ServiceEvents do
       NITRO.panel(id: :service_event_error, body: [])
     )
 
-    mod = WMS.ServiceEvent.Form
-    form = :form.new(mod.new(:none, mod.id(), []), mod.id(), [])
-    :nitro.insert_bottom(:frms, form)
+    :nitro.insert_bottom(
+      :frms,
+      service_order_lookup()
+    )
+
+    :nitro.insert_bottom(
+      :frms,
+      NITRO.panel(
+        id: :service_event_form_container,
+        body: []
+      )
+    )
+  end
+
+  defp service_order_lookup do
+    NITRO.panel(
+      id: :service_order_lookup,
+      class: :service_order_lookup,
+      body: [
+        NITRO.panel(
+          class: :service_order_lookup_title,
+          body: "Вибір сервісного наряду"
+        ),
+        NITRO.panel(
+          class: :wms_toolbar,
+          body: [
+            NITRO.panel(
+              class: :toolbar_filters,
+              body: [
+                NITRO.input(
+                  id: :service_order_search,
+                  placeholder: "ID сервісного наряду"
+                ),
+                NITRO.link(
+                  body: "Знайти",
+                  postback: {:FindServiceOrder, []},
+                  source: [:service_order_search],
+                  class: [:button, :sgreen]
+                )
+              ]
+            ),
+            NITRO.panel(
+              id: :service_order_info,
+              body: []
+            )
+          ]
+        )
+      ]
+    )
   end
 
   def event(:create) do
@@ -52,115 +99,22 @@ defmodule EXO.WMS.ServiceEvents do
     :nitro.show(:frms)
   end
 
-  def normalize_id(value) do
-    value
-    |> :nitro.to_binary()
-    |> String.trim()
-  end
+  def event({:SaveServiceEvent, service_order_id}) do
+    fields = %{
+      service_order: service_order_id,
+      event_type: :nitro.q(:event_type_wms_service_event_none),
+      actor: :nitro.q(:actor_wms_service_event_none),
+      event_status: :nitro.q(:event_status_wms_service_event_none),
+      condition: :nitro.q(:condition_wms_service_event_none),
+      required_action: :nitro.q(:required_action_wms_service_event_none),
+      result: :nitro.q(:result_wms_service_event_none),
+      old_part: :nitro.q(:old_part_wms_service_event_none),
+      new_part: :nitro.q(:new_part_wms_service_event_none)
+    }
 
-  def weapon_exists(weapon_id) do
-    wanted_id = normalize_id(weapon_id)
-
-    :kvs.all(~c"/wms/weapons")
-    |> Enum.any?(fn weapon ->
-      weapon_id =
-        weapon
-        |> EXO.wms_weapon(:id)
-        |> normalize_id()
-
-      weapon_id == wanted_id
-    end)
-  end
-
-  def part_installed_in_weapon(part_serial_number, weapon_id) do
-    wanted_part = normalize_id(weapon_id)
-    wanted_weapon = normalize_id(weapon_id)
-
-    :kvs.all(~c"/wms/parts")
-    |> Enum.any?(fn part ->
-      part_serial =
-        part
-        |> EXO.wms_part(:serial_number)
-        |> normalize_id()
-
-      installed_weapon =
-        part
-        |> EXO.wms_part(:installed_in_weapon)
-        |> normalize_id()
-
-      part_serial == wanted_part and installed_weapon == wanted_weapon
-    end)
-  end
-
-  def part_exists(part_serial_number) do
-    wanted_serial_number = normalize_id(part_serial_number)
-
-    :kvs.all(~c"/wms/parts")
-    |> Enum.any?(fn part ->
-      serial_number =
-        part
-        |> EXO.wms_part(:serial_number)
-        |> normalize_id()
-
-      serial_number == wanted_serial_number
-    end)
-  end
-
-  def service_order_exists(service_order_id) do
-    wanted_id = normalize_id(service_order_id)
-
-    :kvs.all(~c"/wms/service_orders")
-    |> Enum.any?(fn order ->
-      order_id =
-        order
-        |> EXO.wms_service_order(:id)
-        |> normalize_id()
-
-      order_id == wanted_id
-    end)
-  end
-
-  def event({:SaveServiceEvent, _}) do
-    service_order = :service_order_wms_service_event_none |> :nitro.q()
-    weapon = :weapon_wms_service_event_none |> :nitro.q()
-    event_type = :event_type_wms_service_event_none |> :nitro.q()
-    actor = :actor_wms_service_event_none |> :nitro.q()
-    event_status = :event_status_wms_service_event_none |> :nitro.q()
-    condition = :condition_wms_service_event_none |> :nitro.q()
-    required_action = :required_action_wms_service_event_none |> :nitro.q()
-    result = :result_wms_service_event_none |> :nitro.q()
-    old_part = :old_part_wms_service_event_none |> :nitro.q()
-    new_part = :new_part_wms_service_event_none |> :nitro.q()
-
-    cond do
-      service_order !=[] and not service_order_exists(service_order)->
-        WMS.UI.show_error(:service_event_error, "Помилка: сервісного наряду з таким ID не існує")
-      weapon != [] and not weapon_exists(weapon) ->
-        WMS.UI.show_error(:service_event_error, "Помилка: зброї з таким ID не існує")
-      old_part != [] and not part_exists(old_part) ->
-        WMS.UI.show_error(:service_event_error, "Помилка: старої деталі з таким серійним номером не існує")
-      new_part != [] and not part_exists(new_part) ->
-        WMS.UI.show_error(:service_event_error, "Помилка: нової деталі з таким серійним номером не існує")
-
-      true ->
-        id = :kvs.seq([], [])
-
-        service_event =
-          EXO.wms_service_event(
-            id: id,
-            service_order: service_order,
-            weapon: weapon,
-            event_type: event_type,
-            actor: actor,
-            event_status: event_status,
-            condition: condition,
-            required_action: required_action,
-            result: result,
-            old_part: old_part,
-            new_part: new_part
-          )
-
-        :kvs.append(service_event, ~c"/wms/service_events")
+    case WMS.ServiceEventRules.create_service_event(fields) do
+      {:ok, service_event} ->
+        id = EXO.wms_service_event(service_event, :id)
 
         :nitro.insert_top(
           :tableRow,
@@ -168,10 +122,102 @@ defmodule EXO.WMS.ServiceEvents do
         )
 
         build_form()
-
         :nitro.hide(:frms)
         :nitro.show(:ctrl)
+
+      {:error, message} ->
+        WMS.UI.show_error(:service_event_error, message)
     end
+  end
+
+  def event({:FindServiceOrder, _}) do
+    order_id = :nitro.q(:service_order_search)
+
+    case WMS.ServiceEventRules.get_service_order(order_id) do
+      {:ok, service_order} ->
+        :nitro.clear(:service_event_error)
+        :nitro.clear(:service_event_form_container)
+        render_service_order_info(service_order)
+        render_service_event_form(service_order)
+
+      {:error, message} ->
+        :nitro.clear(:service_order_info)
+        :nitro.clear(:service_event_form_container)
+        WMS.UI.show_error(:service_event_error, message)
+    end
+  end
+
+  defp render_service_event_form(service_order) do
+    order_id =
+      service_order
+      |> EXO.wms_service_order(:id)
+      |> WMS.ServiceEventRules.clean()
+
+    mod = WMS.ServiceEvent.Form
+
+    form =
+      :form.new(
+        mod.new(:none, mod.id(), order_id),
+        mod.id(),
+        []
+      )
+
+    :nitro.clear(:service_event_form_container)
+
+    :nitro.insert_bottom(:service_event_form_container, form)
+  end
+
+  defp render_service_order_info(service_order) do
+    order_id =
+      service_order
+      |> EXO.wms_service_order(:id)
+      |> WMS.ServiceEventRules.clean()
+
+    weapon_id =
+      service_order
+      |> EXO.wms_service_order(:weapon)
+      |> WMS.ServiceEventRules.clean()
+
+    reason =
+      service_order
+      |> EXO.wms_service_order(:reason)
+      |> WMS.ServiceEventRules.clean()
+
+    status =
+      service_order
+      |> EXO.wms_service_order(:service_status)
+      |> WMS.ServiceEventRules.status_title()
+
+    :nitro.clear(:service_order_info)
+
+    :nitro.insert_bottom(
+      :service_order_info,
+      NITRO.panel(
+        class: :service_order_card,
+        body: [
+          NITRO.panel(
+            class: :service_order_card_title,
+            body: "Інформація про сервісний наряд"
+          ),
+          NITRO.panel(
+            class: :service_order_card_row,
+            body: "Наряд: #{order_id}"
+          ),
+          NITRO.panel(
+            class: :service_order_card_row,
+            body: "Зброя: #{weapon_id}"
+          ),
+          NITRO.panel(
+            class: :service_order_card_row,
+            body: "Причина: #{reason}"
+          ),
+          NITRO.panel(
+            class: :service_order_card_row,
+            body: "Статус: #{status}"
+          )
+        ]
+      )
+    )
   end
 
   def event({:Close, _}) do
