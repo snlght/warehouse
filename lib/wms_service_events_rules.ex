@@ -6,12 +6,14 @@ defmodule WMS.ServiceEventRules do
   @installable_part_statuses ["spare", "removed"]
   @required_fields [
     :service_order,
-    :weapon,
     :event_type,
     :actor,
     :event_status
   ]
   @optional_fields [
+    :condition,
+    :required_action,
+    :result,
     :old_part,
     :new_part
   ]
@@ -22,9 +24,7 @@ defmodule WMS.ServiceEventRules do
     |> String.trim()
   end
 
-  def blank?(value), do: clean(value) == ""
-
-  def normalize_fields(fields) when is_map(fields) do
+  defp normalize_fields(fields) when is_map(fields) do
     normalized =
       (@required_fields ++ @optional_fields)
       |> Map.new(fn key ->
@@ -34,17 +34,14 @@ defmodule WMS.ServiceEventRules do
     validate_required_fields(normalized)
   end
 
-  def normalize_fields(_fields) do
+  defp normalize_fields(_fields) do
     {:error, "Помилка: некоректний формат даних"}
   end
 
-  def validate_required_fields(fields) do
+  defp validate_required_fields(fields) do
     cond do
       fields.service_order == "" ->
         {:error, "Помилка: сервісний наряд обов'язковий"}
-
-      fields.weapon == "" ->
-        {:error, "Помилка: ID зброї обов'язковий"}
 
       fields.event_type == "" ->
         {:error, "Помилка: тип події обов'язковий"}
@@ -60,10 +57,16 @@ defmodule WMS.ServiceEventRules do
     end
   end
 
-  def validate_references(
-        fields,
-        %{old_part: old_part, new_part: new_part, weapon: weapon, service_order: service_order}
-      ) do
+  defp validate_references(
+         fields,
+         %{
+           old_part: old_part,
+           new_part: new_part,
+           weapon: weapon,
+           weapon_id: weapon_id,
+           service_order: service_order
+         }
+       ) do
     cond do
       is_nil(service_order) ->
         {:error, "Помилка: сервісного наряду не існує"}
@@ -82,21 +85,22 @@ defmodule WMS.ServiceEventRules do
           fields.old_part == fields.new_part ->
         {:error, "Помилка: стара і нова деталі не можуть бути однаковими"}
 
-      not is_nil(new_part) and not part_installable_record?(new_part) ->
-        {:error, "Помилка: нову деталь з таким статусом не можна встановити"}
-
-      not is_nil(new_part) and
-          part_weapon_id(new_part) == fields.weapon ->
-        {:error, "Помилка: нова деталь вже встановлена в цій зброї"}
-
       not is_nil(old_part) and
-          part_weapon_id(old_part) != fields.weapon ->
+          part_weapon_id(old_part) != weapon_id ->
         {:error, "Помилка: стара деталь не належить цій зброї"}
 
       not is_nil(new_part) and
+          part_weapon_id(new_part) == weapon_id ->
+        {:error, "Помилка: нова деталь вже встановлена в цій зброї"}
+
+      not is_nil(new_part) and
         part_weapon_id(new_part) != "" and
-          part_weapon_id(new_part) != fields.weapon ->
+          part_weapon_id(new_part) != weapon_id ->
         {:error, "Помилка: нова деталь вже встановлена в іншій зброї"}
+
+      not is_nil(new_part) and
+          not part_installable_record?(new_part) ->
+        {:error, "Помилка: нову деталь з таким статусом не можна встановити"}
 
       true ->
         :ok
@@ -126,27 +130,37 @@ defmodule WMS.ServiceEventRules do
 
   def create_service_event(fields) do
     with {:ok, fields, context} <- validate_create(fields),
-         :ok <- update_parts(context.old_part, context.new_part, fields.weapon) do
-      id = :kvs.seq([], [])
+          {:ok, event} <- append_service_event(fields, context),
+          :ok <- update_parts(context.old_part, context.new_part, context.weapon_id) do
+        {:ok, event}
+      end
+  end
+
+  defp append_service_event(fields, context) do
+    id = :kvs.seq([], [])
 
       event =
         EXO.wms_service_event(
           id: id,
           service_order: fields.service_order,
-          weapon: fields.weapon,
+          weapon: context.weapon_id,
           event_type: fields.event_type,
           actor: fields.actor,
           event_status: fields.event_status,
+          condition: fields.condition,
+          required_action: fields.required_action,
+          result: fields.result,
           old_part: fields.old_part,
           new_part: fields.new_part
         )
 
-      :kvs.append(event, ~c"/wms/service_events")
-      {:ok, event}
+      case :kvs.append(event, ~c"/wms/service_events") do
+        ^id -> {:ok, event}
+        result -> {:error, "Помилка створення події: #{inspect(result)}"}
+      end
     end
-  end
 
-  def remove_part_from_weapon(part) do
+  defp remove_part_from_weapon(part) do
     updated_part =
       EXO.wms_part(
         part,
@@ -157,7 +171,7 @@ defmodule WMS.ServiceEventRules do
     replace_part(part, updated_part)
   end
 
-  def install_part_on_weapon(part, weapon_id) do
+  defp install_part_on_weapon(part, weapon_id) do
     updated_part =
       EXO.wms_part(
         part,
@@ -168,17 +182,17 @@ defmodule WMS.ServiceEventRules do
     replace_part(part, updated_part)
   end
 
-  def update_parts(nil, nil, _weapon_id), do: :ok
+  defp update_parts(nil, nil, _weapon_id), do: :ok
 
-  def update_parts(old_part, nil, _weapon_id) do
+  defp update_parts(old_part, nil, _weapon_id) do
     remove_part_from_weapon(old_part)
   end
 
-  def update_parts(nil, new_part, weapon_id) do
+  defp update_parts(nil, new_part, weapon_id) do
     install_part_on_weapon(new_part, weapon_id)
   end
 
-  def update_parts(old_part, new_part, weapon_id) do
+  defp update_parts(old_part, new_part, weapon_id) do
     with :ok <- remove_part_from_weapon(old_part),
          :ok <- install_part_on_weapon(new_part, weapon_id) do
       :ok
@@ -186,57 +200,82 @@ defmodule WMS.ServiceEventRules do
   end
 
   defp load_context(fields) do
-    parts = :kvs.all(~c"/wms/parts")
-    weapons = :kvs.all(~c"/wms/weapons")
-    service_orders = :kvs.all(~c"/wms/service_orders")
+    with {:ok, service_order} <- get_service_order(fields.service_order) do
+      weapon_id = service_order_weapon_id(service_order)
 
-    {:ok,
-     %{
-       weapon: find_weapon_in(weapons, fields.weapon),
-       service_order: find_service_order_in(service_orders, fields.service_order),
-       old_part: find_part_in(parts, fields.old_part),
-       new_part: find_part_in(parts, fields.new_part)
-     }}
+      with {:ok, weapon} <- get_from_feed(~c"/wms/weapons", weapon_id),
+           {:ok, old_part} <- get_from_feed(~c"/wms/parts", fields.old_part),
+           {:ok, new_part} <- get_from_feed(~c"/wms/parts", fields.new_part) do
+        {:ok,
+         %{
+           service_order: service_order,
+           weapon_id: weapon_id,
+           weapon: weapon,
+           old_part: old_part,
+           new_part: new_part
+         }}
+      end
+    end
   end
 
-  defp find_part_in(_parts, ""), do: nil
+  def get_service_order(order_id) do
+    normalized_id = clean(order_id)
 
-  defp find_part_in(parts, serial_number) do
-    Enum.find(parts, fn part ->
-      part_serial =
-        part
-        |> EXO.wms_part(:serial_number)
-        |> clean()
+    case normalized_id do
+      "" ->
+        {:error, "Помилка: введіть ID сервісного наряду"}
 
-      part_serial == serial_number
-    end)
+      id ->
+        case :kvs.get(~c"/wms/service_orders", String.to_charlist(id)) do
+          {:ok, service_order} ->
+            {:ok, service_order}
+
+          {:error, :not_found} ->
+            {:error, "Помилка: сервісний наряд не знайдено"}
+
+          {:error, reason} ->
+            {:error, "Помилка: не вдалося отримати сервісний наряд (#{inspect(reason)})"}
+        end
+    end
   end
 
-  defp find_weapon_in(weapons, weapon_id) do
-    Enum.find(weapons, fn weapon ->
-      current_weapon_id =
-        weapon
-        |> EXO.wms_weapon(:id)
-        |> clean()
-
-      current_weapon_id == weapon_id
-    end)
+  defp service_order_weapon_id(service_order) do
+    service_order
+    |> EXO.wms_service_order(:weapon)
+    |> clean()
   end
 
-  defp find_service_order_in(service_orders, service_order_id) do
-    Enum.find(service_orders, fn order ->
-      current_service_order_id =
-        order
-        |> EXO.wms_service_order(:id)
-        |> clean()
+  defp get_from_feed(_feed, ""), do: {:ok, nil}
 
-      current_service_order_id == service_order_id
-    end)
+  defp get_from_feed(feed, id) do
+    key =
+      id
+      |> clean()
+      |> String.to_charlist()
+
+    case :kvs.get(feed, key) do
+      {:ok, record} ->
+        {:ok, record}
+
+      {:error, :not_found} ->
+        {:ok, nil}
+
+      {:error, reason} ->
+        {:error, "Помилка читання даних: #{inspect(reason)}"}
+    end
   end
 
   defp replace_part(old_part, updated_part) do
+    expected_part_id = EXO.wms_part(updated_part, :id)
+
     :kvs.remove(old_part, ~c"/wms/parts")
-    :kvs.append(updated_part, ~c"/wms/parts")
-    :ok
+
+    case :kvs.append(updated_part, ~c"/wms/parts") do
+      ^expected_part_id ->
+        :ok
+
+      result ->
+        {:error, "Помилка оновлення деталі: #{inspect(result)}"}
+    end
   end
 end
