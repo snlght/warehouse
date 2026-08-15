@@ -8,13 +8,17 @@
     cn = <<>>,
     weapon = <<>>,
     event_type = <<>>,
-    actor = <<>>,
     event_status = <<>>,
+    actor = <<>>,
+    source_type = <<>>,
+    source_id = <<>>,
     from_storage = <<>>,
     to_storage = <<>>,
     related_service_order = <<>>,
     related_part = <<>>,
-    created_at = <<>>
+    occurred_at = 0,
+    recorded_at = 0,
+    description = <<>>
 }).
 
 -endif.

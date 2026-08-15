@@ -138,7 +138,8 @@ defmodule EXO.WMS.Transfers do
           from_storage: EXO.wms_transfer(transfer, :from_storage),
           to_storage: EXO.wms_transfer(transfer, :to_storage),
           related_service_order: "",
-          created_at: current_time()
+          occurred_at: System.system_time(:millisecond),
+          recorded_at: System.system_time(:millisecond)
         )
 
       :kvs.append(event, ~c"/wms/weapon_events")
@@ -173,8 +174,9 @@ defmodule EXO.WMS.Transfers do
 
     cond do
       weapon != [] and not WMS.WeaponRules.weapon_exists?(weapon) ->
-        WMS.UI.show_error(:transfer_error,
-        "Помилка: зброї з таким ID не існує"
+        WMS.UI.show_error(
+          :transfer_error,
+          "Помилка: зброї з таким ID не існує"
         )
 
       weapon != [] and not WMS.WeaponRules.available_for_transfer?(weapon) ->

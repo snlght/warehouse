@@ -79,11 +79,6 @@ defmodule EXO.WMS.Services do
     |> String.trim()
   end
 
-  def current_time() do
-    DateTime.utc_now()
-    |> DateTime.to_iso8601()
-  end
-
   def weapon_exists(weapon_id) do
     wanted_id = normalize_id(weapon_id)
 
@@ -113,38 +108,54 @@ defmodule EXO.WMS.Services do
   end
 
   def create_weapon_event_from_service_order(order, new_status) do
+    weapon =
+      order
+      |> EXO.wms_service_order(:weapon)
+      |> normalize_id()
+
+    order_id =
+      order
+      |> EXO.wms_service_order(:id)
+      |> normalize_id()
+
+    actor =
+      order
+      |> EXO.wms_service_order(:received_by)
+      |> normalize_id()
+
     case new_status do
-      "Repair" ->
-        event =
-          EXO.wms_weapon_event(
-            id: :kvs.seq([], []),
-            weapon: EXO.wms_service_order(order, :weapon),
-            event_type: "REPAIR_STARTED",
-            actor: EXO.wms_service_order(order, :received_by),
-            event_status: "started",
-            from_storage: "",
-            to_storage: "",
-            related_service_order: EXO.wms_service_order(order, :id),
-            related_part: "",
-            created_at: current_time()
-          )
-
       "Init" ->
-        event =
-          EXO.wms_weapon_event(
-            id: :kvs.seq([], []),
-            weapon: EXO.wms_service_order(order, :weapon),
-            event_type: "SERVICE_ORDER_CREATED",
-            actor: EXO.wms_service_order(order, :received_by),
-            event_status: "created",
-            from_storage: "",
-            to_storage: "",
-            related_service_order: EXO.wms_service_order(order, :id),
-            related_part: "",
-            created_at: current_time()
-          )
+        WMS.WeaponEventRules.create(%{
+          weapon: weapon,
+          event_type: "service_order_created",
+          event_status: "created",
+          actor: actor,
+          source_type: "service_order",
+          source_id: order_id,
+          related_service_order: order_id,
+        })
 
-        :kvs.append(event, ~c"/wms/weapon_events")
+        "Repair" ->
+          WMS.WeaponEventRules.create(%{
+            weapon: weapon,
+            event_type: "service_started",
+            event_status: "started",
+            actor: actor,
+            source_type: "service_order",
+            source_id: order_id,
+            related_service_order: order_id,
+          })
+
+      "Ready" ->
+        WMS.WeaponEventRules.create(%{
+          weapon: weapon,
+          event_type: "service_completed",
+          event_status: "completed",
+          actor: actor,
+          source_type: "service_order",
+          source_id: order_id,
+          related_service_order: order_id,
+        })
 
       _ ->
         :ok
@@ -182,7 +193,8 @@ defmodule EXO.WMS.Services do
         WMS.UI.show_error(:service_order_error, "Помилка: зброї з таким ID не існує")
 
       weapon != [] and not WMS.WeaponRules.available_for_service?(weapon) ->
-        WMS.UI.show_error(:service_order_error,
+        WMS.UI.show_error(
+          :service_order_error,
           "Помилка: сервісний наряд можна створити тільки для зброї зі статусом 'На озброєнні'"
         )
 

@@ -30,7 +30,7 @@ defmodule WMS.WeaponEvent.Row do
     to_storage = EXO.wms_weapon_event(event, :to_storage)
     related_service_order = EXO.wms_weapon_event(event, :related_service_order)
     related_part = EXO.wms_weapon_event(event, :related_part)
-    created_at = EXO.wms_weapon_event(event, :created_at)
+    occurred_at = EXO.wms_weapon_event(event, :occurred_at)
 
     NITRO.panel(
       id: :form.atom([:tr, name]),
@@ -45,7 +45,7 @@ defmodule WMS.WeaponEvent.Row do
         NITRO.panel(class: :column10, body: :nitro.to_binary(to_storage)),
         NITRO.panel(class: :column10, body: :nitro.to_binary(related_service_order)),
         NITRO.panel(class: :column10, body: :nitro.to_binary(related_part)),
-        NITRO.panel(class: :column20, body: :nitro.to_binary(created_at))
+        NITRO.panel(class: :column20, body: :nitro.to_binary(occurred_at)),
       ]
     )
   end
