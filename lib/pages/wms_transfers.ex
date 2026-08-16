@@ -120,29 +120,45 @@ defmodule EXO.WMS.Transfers do
     end
   end
 
-  @spec current_time() :: binary()
-  def current_time() do
-    DateTime.utc_now()
-    |> DateTime.to_iso8601()
-  end
+  # @spec current_time() :: binary()
+  # def current_time() do
+  #   DateTime.utc_now()
+  #   |> DateTime.to_iso8601()
+  # end
 
   def create_weapon_event_from_transfer(transfer, new_status) do
     if new_status == "Delivered" do
-      event =
-        EXO.wms_weapon_event(
-          id: :kvs.seq([], []),
-          weapon: EXO.wms_transfer(transfer, :weapon),
-          event_type: "TRANSFER_COMPLETED",
-          actor: "Logistics",
-          event_status: "completed",
-          from_storage: EXO.wms_transfer(transfer, :from_storage),
-          to_storage: EXO.wms_transfer(transfer, :to_storage),
-          related_service_order: "",
-          occurred_at: System.system_time(:millisecond),
-          recorded_at: System.system_time(:millisecond)
-        )
+      weapon =
+        transfer
+        |> EXO.wms_transfer(:weapon)
+        |> normalize_id()
 
-      :kvs.append(event, ~c"/wms/weapon_events")
+      transfer_id =
+        transfer
+        |> EXO.wms_transfer(:id)
+        |> normalize_id()
+
+      from_storage =
+        transfer
+        |> EXO.wms_transfer(:from_storage)
+        |> normalize_id()
+
+      to_storage =
+        transfer
+        |> EXO.wms_transfer(:to_storage)
+        |> normalize_id()
+
+      WMS.WeaponEventRules.create(%{
+        weapon: weapon,
+        event_type: "transferred",
+        event_status: "completed",
+        actor: "Logistics",
+        source_type: "transfer",
+        source_id: transfer_id,
+        from_storage: from_storage,
+        to_storage: to_storage,
+        description: ""
+      })
     end
   end
 

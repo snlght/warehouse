@@ -132,7 +132,7 @@ defmodule EXO.WMS.Services do
           actor: actor,
           source_type: "service_order",
           source_id: order_id,
-          related_service_order: order_id,
+          related_service_order: order_id
         })
 
         "Repair" ->
@@ -143,7 +143,7 @@ defmodule EXO.WMS.Services do
             actor: actor,
             source_type: "service_order",
             source_id: order_id,
-            related_service_order: order_id,
+            related_service_order: order_id
           })
 
       "Ready" ->
@@ -154,7 +154,7 @@ defmodule EXO.WMS.Services do
           actor: actor,
           source_type: "service_order",
           source_id: order_id,
-          related_service_order: order_id,
+          related_service_order: order_id
         })
 
       _ ->
