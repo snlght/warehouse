@@ -2,23 +2,30 @@ defmodule WMS.WeaponEvent.Row do
   require EXO
   require NITRO
 
-  @spec id() ::
-          {:wms_weapon_event, [48 | 49 | 51 | 52 | 53 | 54 | 55 | 56, ...], [], [], <<>>, <<>>,
-           <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>}
   def id(), do: EXO.wms_weapon_event()
   def doc(), do: "Історія подій зброї"
-
-  def event_type_title("SERVICE_ORDER_CREATED"), do: "Створено сервісний наряд"
-  def event_type_title("REPAIR_STARTED"), do: "Ремонт розпочато"
-  def event_type_title("REPAIR_COMPLETED"), do: "Ремонт завершено"
-  def event_type_title("TRANSFER_ORDER_CREATED"), do: "Створено наряд на переміщення"
-  def event_type_title("TRANSFER_COMPLETED"), do: "Переміщення завершено"
-  def event_type_title(value), do: value
 
   def event_status_title("created"), do: "Створено"
   def event_status_title("started"), do: "Розпочато"
   def event_status_title("completed"), do: "Завершено"
+  def event_status_title("planned"), do: "Заплановано"
+  def event_status_title("in_progress"), do: "У процесі"
+  def event_status_title("cancelled"), do: "Скасовано"
   def event_status_title(value), do: value
+
+  def event_type_title("registered"), do: "Зброю зареєстровано"
+  def event_type_title("status_changed"), do: "Статус зброї змінено"
+  def event_type_title("transferred"), do: "Переміщення завершено"
+  def event_type_title("service_order_created"), do: "Створено сервісний наряд"
+  def event_type_title("service_started"), do: "Сервіс розпочато"
+  def event_type_title("service_completed"), do: "Сервіс завершено"
+  def event_type_title("part_removed"), do: "Деталь знято"
+  def event_type_title("part_installed"), do: "Деталь встановлено"
+  def event_type_title("part_replaced"), do: "Деталь замінено"
+  def event_type_title("issued"), do: "Зброю видано"
+  def event_type_title("returned"), do: "Зброю повернуто"
+  def event_type_title("decommissioned"), do: "Зброю списано"
+  def event_type_title(value), do: value
 
   def new(name, event, _) do
     id = EXO.wms_weapon_event(event, :id)
@@ -38,15 +45,32 @@ defmodule WMS.WeaponEvent.Row do
       body: [
         NITRO.panel(class: :column10, body: :nitro.to_binary(id)),
         NITRO.panel(class: :column10, body: :nitro.to_binary(weapon)),
-        event_type |> :nitro.to_binary() |> event_type_title(),
+        NITRO.panel(
+          class: :column20,
+          body: event_type |> :nitro.to_binary() |> event_type_title()
+        ),
         NITRO.panel(class: :column10, body: :nitro.to_binary(actor)),
-        event_status |> :nitro.to_binary() |> event_status_title(),
+        NITRO.panel(
+          class: :column20,
+          body: event_status |> :nitro.to_binary() |> event_status_title()
+        ),
         NITRO.panel(class: :column10, body: :nitro.to_binary(from_storage)),
         NITRO.panel(class: :column10, body: :nitro.to_binary(to_storage)),
         NITRO.panel(class: :column10, body: :nitro.to_binary(related_service_order)),
         NITRO.panel(class: :column10, body: :nitro.to_binary(related_part)),
-        NITRO.panel(class: :column20, body: :nitro.to_binary(occurred_at)),
+        NITRO.panel(
+          class: :column20,
+          body: format_timestamp(occurred_at)
+        )
       ]
     )
   end
+
+  defp format_timestamp(timestamp) when is_integer(timestamp) do
+    timestamp
+    |> DateTime.from_unix!(:millisecond)
+    |> Calendar.strftime("%Y-%m-%d %H:%M:%S")
+  end
+
+  defp format_timestamp(_), do: ""
 end
