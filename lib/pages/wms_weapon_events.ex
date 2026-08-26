@@ -10,8 +10,76 @@ defmodule EXO.WMS.WeaponEvents do
 
     :nitro.insert_top(:tableHead, header())
 
+    render_toolbar(:list)
+
+    render_events("")
+  end
+
+
+  def event(:search_weapon_event) do
+    weapon_id =
+      :nitro.q(:weapon_event_search)
+      |> normalize_filter()
+
+    :nitro.clear(:tableRow)
+
+    render_events(weapon_id)
+  end
+
+  def event(:clear_weapon_event_search) do
+    render_toolbar(:list)
+
+    :nitro.clear(:tableRow)
+
+    render_events("")
+  end
+
+  def event(_), do: :ok
+
+  defp render_toolbar(:list) do
+    :nitro.clear(:ctrl)
+
+    :nitro.insert_bottom(
+      :ctrl,
+      WMS.WeaponEvent.Toolbar.list_mode()
+    )
+  end
+
+  defp load_events() do
     :kvs.all(~c"/wms/weapon_events")
-    |> Enum.each(fn event ->
+  end
+
+  defp normalize_filter(value) do
+    value
+    |> :nitro.to_binary()
+    |> String.trim()
+  end
+
+  defp filter_events_by_weapon(events, ""), do: events
+
+  defp filter_events_by_weapon(events, weapon_id) do
+    Enum.filter(events, fn event ->
+      current_weapon =
+        event
+        |> EXO.wms_weapon_event(:weapon)
+        |> normalize_filter()
+
+      current_weapon == weapon_id
+    end)
+  end
+
+  defp sort_events(events) do
+    Enum.sort_by(
+      events,
+      fn event ->
+        EXO.wms_weapon_event(event, :occurred_at)
+      end,
+      :desc
+    )
+  end
+
+  defp render_rows(events) do
+    Enum.each(events, fn event ->
       id = EXO.wms_weapon_event(event, :id)
 
       :nitro.insert_bottom(
@@ -21,7 +89,14 @@ defmodule EXO.WMS.WeaponEvents do
     end)
   end
 
-  def event(_), do: :ok
+  defp render_events(weapon_id) do
+    weapon_id = normalize_filter(weapon_id)
+
+    load_events()
+    |> filter_events_by_weapon(weapon_id)
+    |> sort_events()
+    |> render_rows()
+  end
 
   def header() do
     NITRO.panel(
