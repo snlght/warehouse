@@ -12,18 +12,21 @@ defmodule EXO.WMS.WeaponEvents do
 
     render_toolbar(:list)
 
-    render_events("")
+    render_events("", "all")
   end
-
 
   def event(:search_weapon_event) do
     weapon_id =
       :nitro.q(:weapon_event_search)
       |> normalize_filter()
 
+    event_type =
+      :nitro.q(:weapon_event_type_filter)
+      |> normalize_filter()
+
     :nitro.clear(:tableRow)
 
-    render_events(weapon_id)
+    render_events(weapon_id, event_type)
   end
 
   def event(:clear_weapon_event_search) do
@@ -31,7 +34,7 @@ defmodule EXO.WMS.WeaponEvents do
 
     :nitro.clear(:tableRow)
 
-    render_events("")
+    render_events("", "all")
   end
 
   def event(_), do: :ok
@@ -68,6 +71,20 @@ defmodule EXO.WMS.WeaponEvents do
     end)
   end
 
+  defp filter_events_by_type(events, "all"), do: events
+  defp filter_events_by_type(events, ""), do: events
+
+  defp filter_events_by_type(events, event_type) do
+    Enum.filter(events, fn event ->
+      current_type =
+        event
+        |> EXO.wms_weapon_event(:event_type)
+        |> normalize_filter()
+
+      current_type == event_type
+    end)
+  end
+
   defp sort_events(events) do
     Enum.sort_by(
       events,
@@ -89,11 +106,13 @@ defmodule EXO.WMS.WeaponEvents do
     end)
   end
 
-  defp render_events(weapon_id) do
+  defp render_events(weapon_id, event_type) do
     weapon_id = normalize_filter(weapon_id)
+    event_type = normalize_filter(event_type)
 
     load_events()
     |> filter_events_by_weapon(weapon_id)
+    |> filter_events_by_type(event_type)
     |> sort_events()
     |> render_rows()
   end
