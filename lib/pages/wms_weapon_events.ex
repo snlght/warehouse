@@ -37,6 +37,43 @@ defmodule EXO.WMS.WeaponEvents do
     render_events("", "all")
   end
 
+  def event({:show_weapon_event, id}) do
+    wanted_id =
+      id
+      |> normalize_filter()
+
+    event =
+      load_events()
+      |> Enum.find(fn event ->
+        current_id =
+          event
+          |> EXO.wms_weapon_event(:id)
+          |> normalize_filter()
+
+        current_id == wanted_id
+      end)
+
+    case event do
+      nil ->
+        :ok
+
+      event ->
+        :nitro.clear(:frms)
+
+        :nitro.insert_bottom(
+          :frms,
+          WMS.WeaponEvent.Details.new(event)
+        )
+
+        :nitro.show(:frms)
+    end
+  end
+
+  def event(:close_weapon_event_details) do
+    :nitro.clear(:frms)
+    :nitro.hide(:frms)
+  end
+
   def event(_), do: :ok
 
   defp render_toolbar(:list) do
@@ -131,7 +168,8 @@ defmodule EXO.WMS.WeaponEvents do
         NITRO.panel(class: :column10, body: "Куди"),
         NITRO.panel(class: :column10, body: "Наряд"),
         NITRO.panel(class: :column10, body: "Деталь"),
-        NITRO.panel(class: :column20, body: "Час")
+        NITRO.panel(class: :column20, body: "Час"),
+        NITRO.panel(class: :column10, body: "Дія")
       ]
     )
   end

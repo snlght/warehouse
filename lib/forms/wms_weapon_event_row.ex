@@ -5,27 +5,6 @@ defmodule WMS.WeaponEvent.Row do
   def id(), do: EXO.wms_weapon_event()
   def doc(), do: "Історія подій зброї"
 
-  def event_status_title("created"), do: "Створено"
-  def event_status_title("started"), do: "Розпочато"
-  def event_status_title("completed"), do: "Завершено"
-  def event_status_title("planned"), do: "Заплановано"
-  def event_status_title("in_progress"), do: "У процесі"
-  def event_status_title("cancelled"), do: "Скасовано"
-  def event_status_title(value), do: value
-
-  def event_type_title("registered"), do: "Зброю зареєстровано"
-  def event_type_title("status_changed"), do: "Статус зброї змінено"
-  def event_type_title("transferred"), do: "Переміщення завершено"
-  def event_type_title("service_order_created"), do: "Створено сервісний наряд"
-  def event_type_title("service_started"), do: "Сервіс розпочато"
-  def event_type_title("service_completed"), do: "Сервіс завершено"
-  def event_type_title("part_removed"), do: "Деталь знято"
-  def event_type_title("part_installed"), do: "Деталь встановлено"
-  def event_type_title("part_replaced"), do: "Деталь замінено"
-  def event_type_title("issued"), do: "Зброю видано"
-  def event_type_title("returned"), do: "Зброю повернуто"
-  def event_type_title("decommissioned"), do: "Зброю списано"
-  def event_type_title(value), do: value
 
   def new(name, event, _) do
     id = EXO.wms_weapon_event(event, :id)
@@ -47,12 +26,12 @@ defmodule WMS.WeaponEvent.Row do
         NITRO.panel(class: :column10, body: :nitro.to_binary(weapon)),
         NITRO.panel(
           class: :column20,
-          body: event_type |> :nitro.to_binary() |> event_type_title()
+          body: event_type |> :nitro.to_binary() |> WMS.WeaponEventView.event_type_title()
         ),
         NITRO.panel(class: :column10, body: :nitro.to_binary(actor)),
         NITRO.panel(
           class: :column20,
-          body: event_status |> :nitro.to_binary() |> event_status_title()
+          body: event_status |> :nitro.to_binary() |> WMS.WeaponEventView.event_status_title()
         ),
         NITRO.panel(class: :column10, body: :nitro.to_binary(from_storage)),
         NITRO.panel(class: :column10, body: :nitro.to_binary(to_storage)),
@@ -60,17 +39,18 @@ defmodule WMS.WeaponEvent.Row do
         NITRO.panel(class: :column10, body: :nitro.to_binary(related_part)),
         NITRO.panel(
           class: :column20,
-          body: format_timestamp(occurred_at)
+          body: occurred_at |> WMS.WeaponEventView.format_timestamp()
+        ),
+        NITRO.panel(
+          class: :column10,
+          body: NITRO.link(
+            body: "Деталі",
+            postback: {:show_weapon_event, id},
+            class: [:button, :sgreen]
+          )
+
         )
       ]
     )
   end
-
-  defp format_timestamp(timestamp) when is_integer(timestamp) do
-    timestamp
-    |> DateTime.from_unix!(:millisecond)
-    |> Calendar.strftime("%Y-%m-%d %H:%M:%S")
-  end
-
-  defp format_timestamp(_), do: ""
 end
