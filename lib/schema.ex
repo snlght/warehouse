@@ -31,7 +31,9 @@ defmodule EXO do
     :wms_caliber,
     :wms_country,
     :wms_category,
-    :wms_status
+    :wms_status,
+    :wms_diagnosis_result,
+    :wms_part_requirement
   ]
 
   Enum.each(
