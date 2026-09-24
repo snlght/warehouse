@@ -35,6 +35,48 @@ defmodule WMS.PartRules do
     end)
   end
 
+  def get_part(part_id) do
+    id =
+      part_id
+      |> clean()
+      |> String.to_charlist()
+
+    case :kvs.get(~c"/wms/parts", id) do
+      {:ok, part} ->
+        {:ok, part}
+
+      {:error, :not_found} ->
+        {:error, "Помилка: деталь не знайдена"}
+
+      {:error, reason} ->
+        {:error, "Помилка: не вдалося отримати деталь (#{inspect(reason)})"}
+    end
+  end
+
+  def validate_reservable(part) do
+    status =
+      part
+      |> EXO.wms_part(:part_status)
+      |> normalize()
+
+    installed_in_weapon =
+      part
+      |> EXO.wms_part(:installed_in_weapon)
+      |> clean()
+
+    cond do
+      status != "spare" ->
+        {:error, "Помилка: резервувати можна лише вільну запасну деталь"}
+
+      installed_in_weapon != "" ->
+        {:error, "Помилка: резервувати можна лише невстановлену деталь"}
+
+      true ->
+        :ok
+    end
+
+  end
+
   def weapon_exists?(weapon_id) do
     target_id = clean(weapon_id)
 
