@@ -28,6 +28,12 @@ defmodule WMS.ServiceOrder.Row do
 
     action =
       case status_value do
+        "Repair" ->
+          NITRO.link(
+            body: "Відкрити ремонт",
+            postback: {:OpenRepair, id},
+            class: [:button, :sgreen]
+          )
         "Ready" ->
           NITRO.panel(
             style: "padding:8px 0;color:#6b7280;font-weight:600;",
