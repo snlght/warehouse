@@ -109,8 +109,12 @@ defmodule WMS.PartReservationRules do
          :ok <-
            validate_requirement_not_reserved(requirement_id),
          :ok <-
-           validate_reserved_by(reserved_by) do
-      build_reservation(part_requirement, part, reserved_by)
+           validate_reserved_by(reserved_by),
+         {:ok, reservation} <-
+           build_reservation(part_requirement, part, reserved_by),
+         {:ok, reserved_requirement} <-
+           WMS.PartRequirementRules.mark_reserved(part_requirement) do
+      {:ok, reservation, reserved_requirement}
     end
   end
 end

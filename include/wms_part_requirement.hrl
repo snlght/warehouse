@@ -13,6 +13,9 @@
     status = <<>>,
     requested_by = <<>>,
     requested_at = 0,
+    reserved_part = <<>>,
+    reserved_by = <<>>,
+    reserved_at = 0,
     fulfilled_by_part = <<>>,
     notes = <<>>
 }).

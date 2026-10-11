@@ -7,17 +7,6 @@ defmodule WMS.DiagnosisRules do
     "unrepairable"
   ]
 
-  @required_fields [
-    :service_order,
-    :outcome,
-    :diagnosed_by
-  ]
-
-  @optional_fields [
-    :faults,
-    :notes
-  ]
-
   def clean(nil), do: ""
 
   def clean(value) do

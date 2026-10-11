@@ -33,7 +33,9 @@ defmodule EXO do
     :wms_category,
     :wms_status,
     :wms_diagnosis_result,
-    :wms_part_requirement
+    :wms_part_requirement,
+    :wms_part_reservation,
+    :wms_part_requirement_ref
   ]
 
   Enum.each(

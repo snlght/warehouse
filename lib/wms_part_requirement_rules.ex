@@ -106,13 +106,24 @@ defmodule WMS.PartRequirementRules do
         notes: fields.notes
       )
 
-    case :kvs.append(part_requirement, ~c"/wms/part_requirements") do
-      ^id ->
-        {:ok, part_requirement}
+    with ^id <- :kvs.append(part_requirement, ~c"/wms/part_requirements"),
+         :ok <- append_requirement_ref(fields.service_order, id) do
+      {:ok, part_requirement}
+    else
+      {:error, reason} ->
+        {:error, reason}
 
       result ->
         {:error, "Помилка створення потреби в деталі: #{inspect(result)}"}
     end
+  end
+
+  def list_by_service_order(service_order_id) do
+    feed = service_order_requirements_feed(service_order_id)
+
+    feed
+    |> :kvs.all()
+    |> Enum.map(&requirement_from_ref/1)
   end
 
   defp get_service_order(order_id) do
@@ -179,6 +190,189 @@ defmodule WMS.PartRequirementRules do
       _ ->
         {:error, "Помилка: потребу в деталі можна створити лише для ремонтопридатної зброї"}
     end
+  end
+
+  def get_part_requirement(requirement_id) do
+    id =
+      requirement_id
+      |> clean()
+      |> String.to_charlist()
+
+    case :kvs.get(~c"/wms/part_requirements", id) do
+      {:ok, part_requirement} ->
+        {:ok, part_requirement}
+
+      {:error, :not_found} ->
+        {:error, "Помилка: потребу в деталі не знайдено"}
+
+      {:error, reason} ->
+        {:error, "Помилка: не вдалося отримати потребу в деталі (#{inspect(reason)})"}
+    end
+  end
+
+  defp validate_requirement_status(part_requirement) do
+    status =
+      part_requirement
+      |> EXO.wms_part_requirement(:status)
+      |> clean()
+
+    case status do
+      "requested" ->
+        :ok
+
+      _ ->
+        {:error, "Помилка: резервування можливе лише для потреби, яка очікує деталь"}
+    end
+  end
+
+  defp validate_part_status(part) do
+    status =
+      part
+      |> EXO.wms_part(:part_status)
+      |> clean()
+
+    case status do
+      "spare" ->
+        :ok
+
+      _ ->
+        {:error, "Помилка: резервувати можна лише вільну запасну деталь"}
+    end
+  end
+
+  defp get_part(part_id) do
+    id =
+      part_id
+      |> clean()
+      |> String.to_charlist()
+
+    case :kvs.get(~c"/wms/parts", id) do
+      {:ok, part} ->
+        {:ok, part}
+
+      {:error, :not_found} ->
+        {:error, "Помилка: деталь не знайдено"}
+
+      {:error, reason} ->
+        {:error, "Помилка: не вдалося отримати деталь (#{inspect(reason)})"}
+    end
+  end
+
+  def validate_reservable(part_requirement) do
+    requirement_status =
+      part_requirement
+      |> EXO.wms_part_requirement(:status)
+      |> clean()
+
+    case requirement_status do
+      "requested" ->
+        :ok
+
+      _ ->
+        {:error, "Помилка: резервування можливе лише для потреби, яка очікує деталь"}
+    end
+  end
+
+  defp validate_part_type(part_requirement, part) do
+    required_part_type =
+      part_requirement
+      |> EXO.wms_part_requirement(:part_type)
+      |> clean()
+
+    part_type =
+      part
+      |> EXO.wms_part(:part_type)
+      |> clean()
+
+    case part_type do
+      ^required_part_type ->
+        :ok
+
+      _ ->
+        {:error, "Помилка: тип деталі не відповідає потребі в деталі"}
+    end
+  end
+
+  defp validate_part_not_installed(part) do
+    installed =
+      part
+      |> EXO.wms_part(:installed_in_weapon)
+      |> clean()
+
+    case installed do
+      "" ->
+        :ok
+
+      _ ->
+        {:error, "Помилка: деталь вже встановлена в зброю"}
+    end
+  end
+
+  def reserve_part(requirement_id, part_id) do
+    with {:ok, part_requirement} <- get_part_requirement(requirement_id),
+         :ok <- validate_requirement_status(part_requirement),
+         {:ok, part} <- get_part(part_id),
+         :ok <- validate_part_type(part_requirement, part),
+         :ok <- validate_part_status(part),
+         :ok <- validate_part_not_installed(part) do
+      :ok
+    end
+  end
+
+  def mark_reserved(part_requirement) do
+    case validate_reservable(part_requirement) do
+      :ok ->
+        updated_part_requirement =
+          part_requirement
+          |> EXO.wms_part_requirement(status: "reserved")
+
+        {:ok, updated_part_requirement}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp service_order_requirements_feed(service_order_id) do
+    service_order_id = clean(service_order_id)
+
+    ("/wms/part_requirements_by_service_order/" <> service_order_id)
+    |> String.to_charlist()
+  end
+
+  defp append_requirement_ref(service_order_id, requirement_id) do
+    feed = service_order_requirements_feed(service_order_id)
+
+    req_ref =
+      EXO.wms_part_requirement_ref(
+        service_order: clean(service_order_id),
+        requirement: clean(requirement_id)
+      )
+
+    ref_id =
+      req_ref
+      |> EXO.wms_part_requirement_ref(:id)
+
+    case :kvs.append(req_ref, feed) do
+      ^ref_id ->
+        :ok
+
+      result ->
+        {:error, "Помилка створення посилання на потребу в деталі: #{inspect(result)}"}
+    end
+  end
+
+    defp requirement_from_ref(ref) do
+    req_id =
+      ref
+      |> EXO.wms_part_requirement_ref(:requirement)
+      |> clean()
+    get_part_requirement(req_id)
+
+
+
+
+
   end
 
   def create(fields) do

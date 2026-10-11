@@ -8,7 +8,8 @@ defmodule WAREHOUSE do
   def start(_, _) do
     children = [
       {Bandit, scheme: :http, port: 8051, plug: Sample.WS},
-      {Bandit, scheme: :http, port: 8004, plug: Sample.Static}
+      {Bandit, scheme: :http, port: 8004, plug: Sample.Static},
+      WMS.PartReservationCoordinator
     ]
 
     result = Supervisor.start_link(children, strategy: :one_for_one, name: Sample.Supervisor)

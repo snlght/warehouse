@@ -74,7 +74,6 @@ defmodule WMS.PartRules do
       true ->
         :ok
     end
-
   end
 
   def weapon_exists?(weapon_id) do
@@ -234,6 +233,39 @@ defmodule WMS.PartRules do
     else
       :ok
     end
+  end
+
+  defp reservation_available?(part_id) do
+    case WMS.PartReservationStorage.get_active_by_part(part_id) do
+      {:error, :not_found} ->
+        true
+
+      {:ok, _reservation_id} ->
+        false
+
+      {:error, _reason} ->
+        false
+    end
+  end
+
+  def list_reservable_by_type(part_type) do
+    wanted_type = clean(part_type)
+
+    :kvs.all(~c"/wms/parts")
+    |> Enum.filter(fn part ->
+      current_type =
+        part
+        |> EXO.wms_part(:part_type)
+        |> clean()
+
+      part_id =
+        part
+        |> EXO.wms_part(:id)
+        |> clean()
+
+      current_type == wanted_type and
+        validate_reservable(part) == :ok and reservation_available?(part_id)
+    end)
   end
 
   def status_title("installed"), do: "Встановлена"
