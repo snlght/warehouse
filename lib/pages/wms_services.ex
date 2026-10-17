@@ -68,7 +68,7 @@ defmodule EXO.WMS.Services do
   end
 
   def event({:CreateSO, _form}) do
-    id = next_service_order_id()
+    id = WMS.BusinessNumber.service_order()
     weapon = :nitro.to_binary(:nitro.q(:weapon_wms_service_order_none))
     reason = :nitro.to_binary(:nitro.q(:reason_wms_service_order_none))
     received_by = :nitro.to_binary(:nitro.q(:received_by_wms_service_order_none))
@@ -227,33 +227,6 @@ defmodule EXO.WMS.Services do
         ]
       )
     )
-  end
-
-  def next_service_order_id() do
-    existing_numbers =
-      :kvs.all(~c"/wms/service_orders")
-      |> Enum.map(fn order ->
-        order
-        |> EXO.wms_service_order(:id)
-        |> :nitro.to_binary()
-        |> String.trim()
-      end)
-      |> Enum.filter(fn id ->
-        String.starts_with?(id, "SO-")
-      end)
-      |> Enum.map(fn id ->
-        id
-        |> String.replace("SO-", "")
-        |> String.to_integer()
-      end)
-
-    next_number =
-      case existing_numbers do
-        [] -> 101
-        numbers -> Enum.max(numbers) + 1
-      end
-
-    "SO-" <> Integer.to_string(next_number)
   end
 
   def normalize_id(value) do
