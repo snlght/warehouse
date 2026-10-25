@@ -68,7 +68,6 @@ defmodule EXO.WMS.Services do
   end
 
   def event({:CreateSO, _form}) do
-    id = WMS.BusinessNumber.service_order()
     weapon = :nitro.to_binary(:nitro.q(:weapon_wms_service_order_none))
     reason = :nitro.to_binary(:nitro.q(:reason_wms_service_order_none))
     received_by = :nitro.to_binary(:nitro.q(:received_by_wms_service_order_none))
@@ -84,26 +83,29 @@ defmodule EXO.WMS.Services do
         )
 
       true ->
-        order =
-          EXO.wms_service_order(
-            id: id,
-            weapon: weapon,
-            reason: reason,
-            received_by: received_by,
-            service_status: "Init",
-            result: ""
-          )
+        case WMS.ServiceOrderCoordinator.create(%{
+               weapon: weapon,
+               reason: reason,
+               received_by: received_by
+             }) do
+          {:ok, _number, order} ->
+            id = EXO.wms_service_order(order, :id)
 
-        :kvs.append(order, ~c"/wms/service_orders")
-        create_weapon_event_from_service_order(order, "Init")
-        :nitro.insert_bottom(:tableRow, WMS.ServiceOrder.Row.new(id, order, []))
+            create_weapon_event_from_service_order(order, "Init")
+            :nitro.insert_bottom(:tableRow, WMS.ServiceOrder.Row.new(id, order, []))
+            :bpe.start(WMS.BPE.ServiceOrder.def(), [])
 
-        :bpe.start(WMS.BPE.ServiceOrder.def(), [])
+            build_form()
 
-        build_form()
+            :nitro.hide(:frms)
+            :nitro.show(:ctrl)
 
-        :nitro.hide(:frms)
-        :nitro.show(:ctrl)
+            {:error, reason} ->
+              WMS.UI.show_error(
+                :service_order_error,
+                "Помилка: не вдалося створити сервісний наряд (#{inspect(reason)})"
+              )
+        end
     end
   end
 
