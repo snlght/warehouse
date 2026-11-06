@@ -67,7 +67,7 @@ defmodule EXO.WMS.Services do
     end
   end
 
-  def event({:CreateSO, _form}) do
+  def event({:CreateSO, command_id, _form}) do
     weapon = :nitro.to_binary(:nitro.q(:weapon_wms_service_order_none))
     reason = :nitro.to_binary(:nitro.q(:reason_wms_service_order_none))
     received_by = :nitro.to_binary(:nitro.q(:received_by_wms_service_order_none))
@@ -83,12 +83,12 @@ defmodule EXO.WMS.Services do
         )
 
       true ->
-        case WMS.ServiceOrderCoordinator.create(%{
+        case WMS.ServiceOrderCoordinator.create(command_id, %{
                weapon: weapon,
                reason: reason,
                received_by: received_by
              }) do
-          {:ok, _number, order} ->
+          {:ok, :created, order} ->
             id = EXO.wms_service_order(order, :id)
 
             create_weapon_event_from_service_order(order, "Init")
@@ -99,6 +99,15 @@ defmodule EXO.WMS.Services do
 
             :nitro.hide(:frms)
             :nitro.show(:ctrl)
+
+            {:ok, :existing, _order} ->
+              event(:init)
+
+            {:pending, business_number} ->
+              WMS.UI.show_error(
+                :service_order_error,
+                "Сервісний наряд #{business_number} ще створюється"
+              )
 
             {:error, reason} ->
               WMS.UI.show_error(

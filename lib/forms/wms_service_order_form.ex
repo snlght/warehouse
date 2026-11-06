@@ -7,6 +7,10 @@ defmodule WMS.ServiceOrder.Form do
   def id, do: EXO.wms_service_order()
 
   def new(name, _so, _) do
+    command_id =
+      :crypto.strong_rand_bytes(16)
+      |> Base.encode16(case: :lower)
+
     FORM.document(
       name: :form.atom([:wms_service_order, name]),
       sections: [FORM.sec(name: ["Створення Сервісного Замовлення: "])],
@@ -28,7 +32,11 @@ defmodule WMS.ServiceOrder.Form do
             :reason_wms_service_order_none,
             :received_by_wms_service_order_none
           ],
-          postback: {:CreateSO, :form.atom([:wms_service_order, name])}
+          postback: {
+            :CreateSO,
+            command_id,
+            :form.atom([:wms_service_order, name])
+          }
         )
       ],
       fields: [

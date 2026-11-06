@@ -9,15 +9,10 @@ defmodule WMS.ServiceOrderCoordinator do
   @impl true
   def init(_opts), do: {:ok, %{}}
 
-  def create(fields) do
-    GenServer.call(__MODULE__, {:create, fields})
-  end
-
   def create(command_id, fields) do
     GenServer.call(__MODULE__, {:create, command_id, fields})
   end
 
-  @impl true
   @impl true
   def handle_call({:create, command_id, fields}, _from, state) do
     case WMS.IdempotencyStorage.get(:service_order, command_id) do
@@ -27,7 +22,31 @@ defmodule WMS.ServiceOrderCoordinator do
             {:reply, {:ok, :existing, order}, state}
 
           {:error, _reason} ->
-            {:reply, {:pending, business_number}, state}
+            case WMS.BusinessNumberStorage.get_record(:service_order, business_number) do
+              {:ok, record} ->
+                case EXO.wms_business_number(record, :status) do
+                  "pending" ->
+                    case create_reserved_order(business_number, fields) do
+                      {:ok, order} ->
+                        {:reply, {:ok, :created, order}, state}
+
+                      {:error, reason} ->
+                        {:reply, {:error, reason}, state}
+                    end
+
+                  "committed" ->
+                    {:reply, {:error, {:committed_order_missing, business_number}}, state}
+
+                  "void" ->
+                    {:reply, {:error, {:void_business_number, business_number}}, state}
+
+                  status ->
+                    {:reply, {:error, {:unknown_number_status, status}}, state}
+                end
+
+              {:error, reason} ->
+                {:reply, {:error, reason}, state}
+            end
         end
 
       {:error, :not_found} ->
@@ -56,40 +75,7 @@ defmodule WMS.ServiceOrderCoordinator do
     end
   end
 
-  @impl true
-  def handle_call({:create, fields}, _from, state) do
-    case WMS.BusinessNumber.service_order_candidate() do
-      {:ok, number, business_number} ->
-        order =
-          EXO.wms_service_order(
-            id: business_number,
-            weapon: fields.weapon,
-            reason: fields.reason,
-            received_by: fields.received_by,
-            service_status: "Init",
-            result: ""
-          )
-
-        case :kvs.append(order, ~c"/wms/service_orders") do
-          ^business_number ->
-            case WMS.BusinessNumberStorage.put_current(:service_order, number) do
-              :ok ->
-                {:reply, {:ok, number, order}, state}
-
-              {:error, reason} ->
-                {:reply, {:error, {:counter_write_failed, reason}}, state}
-            end
-
-          result ->
-            {:reply, {:error, {:service_order_write_failed, result}}, state}
-        end
-
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
-    end
-  end
-
-  def build_order(business_number, fields) do
+  defp build_order(business_number, fields) do
     EXO.wms_service_order(
       id: business_number,
       weapon: fields.weapon,
