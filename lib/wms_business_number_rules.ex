@@ -14,10 +14,38 @@ defmodule WMS.BusinessNumberRules do
   end
 
   def commit(record, target_id) do
-    EXO.wms_business_number(
-      record,
-      status: "committed",
-      target_id: target_id
-    )
+    case EXO.wms_business_number(record, :status) do
+      "pending" ->
+        {
+          :ok,
+          EXO.wms_business_number(
+            record,
+            status: "committed",
+            target_id: target_id
+          )
+        }
+
+      status ->
+        {:error, {:invalid_transition, status, "committed"}}
+    end
+  end
+
+  def void(record, reason, actor) do
+    case EXO.wms_business_number(record, :status) do
+      "pending" ->
+        {
+          :ok,
+          EXO.wms_business_number(
+            record,
+            status: "void",
+            void_reason: reason,
+            voided_by: actor,
+            voided_at: System.system_time(:millisecond)
+          )
+        }
+
+      status ->
+        {:error, {:invalid_transition, status, "void"}}
+    end
   end
 end

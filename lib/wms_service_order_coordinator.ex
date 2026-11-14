@@ -13,6 +13,31 @@ defmodule WMS.ServiceOrderCoordinator do
     GenServer.call(__MODULE__, {:create, command_id, fields})
   end
 
+  def void(command_id, reason, actor) do
+    GenServer.call(__MODULE__, {:void, command_id, reason, actor})
+  end
+
+  @impl true
+  def handle_call({:void, command_id, reason, actor}, _from, state) do
+    case WMS.IdempotencyStorage.get(:service_order, command_id) do
+      {:ok, business_number} ->
+        case WMS.ServiceEventRules.get_service_order(business_number) do
+          {:ok, _order} ->
+            {:reply, {:error, {:service_order_exists, business_number}}, state}
+          {:error, _reason} ->
+            case void_number(business_number, reason, actor) do
+              :ok ->
+                {:reply, {:ok, business_number}, state}
+
+              {:error, reason} ->
+                {:reply, {:error, reason}, state}
+            end
+        end
+        {:error, reason} ->
+          {:reply, {:error, reason}, state}
+    end
+  end
+
   @impl true
   def handle_call({:create, command_id, fields}, _from, state) do
     case WMS.IdempotencyStorage.get(:service_order, command_id) do
@@ -141,15 +166,31 @@ defmodule WMS.ServiceOrderCoordinator do
 
   defp commit_number(business_number, target_id) do
     with {:ok, record} <-
-           WMS.BusinessNumberStorage.get_record(:service_order, business_number) do
-      committed =
-        WMS.BusinessNumberRules.commit(record, target_id)
+           WMS.BusinessNumberStorage.get_record(:service_order, business_number),
+         {:ok, committed} <-
+           WMS.BusinessNumberRules.commit(record, target_id),
+         :ok <-
+           WMS.BusinessNumberStorage.put_record(
+             :service_order,
+             business_number,
+             committed
+           ) do
+      :ok
+    end
+  end
 
-      WMS.BusinessNumberStorage.put_record(
-        :service_order,
-        business_number,
-        committed
-      )
+  defp void_number(business_number, reason, actor) do
+    with {:ok, record} <-
+           WMS.BusinessNumberStorage.get_record(:service_order, business_number),
+         {:ok, voided} <-
+           WMS.BusinessNumberRules.void(record, reason, actor),
+         :ok <-
+           WMS.BusinessNumberStorage.put_record(
+             :service_order,
+             business_number,
+             voided
+           ) do
+      :ok
     end
   end
 

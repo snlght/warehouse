@@ -12,7 +12,10 @@
     command_id = <<>>,
     status = <<>>,
     target_id = <<>>,
-    issued_at = 0
+    issued_at = 0,
+    void_reason = <<>>,
+    voided_by = <<>>,
+    voided_at = 0
 }).
 
 -endif.
